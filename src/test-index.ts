@@ -89,3 +89,11 @@ async function listIndexes(): Promise<void> {
 
 // Run the function
 listIndexes();
+
+
+az rest \
+  --method put \
+  --url "https://azureaisearchsukeshs1.search.windows.net/indexes/docs_v1?api-version=2023-11-01-preview" \
+  --headers "Content-Type=application/json" "api-key=<your-admin-key>" \
+  --body @index.json
+
