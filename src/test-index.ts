@@ -1,5 +1,6 @@
 import { AzureKeyCredential, SearchIndex, SearchIndexClient } from '@azure/search-documents';
 
+import { IndexedChunk } from './types.js';
 import { config } from 'dotenv';
 
 // Load environment variables
@@ -46,14 +47,21 @@ async function listIndexes(): Promise<void> {
             console.log('\nFields:');
             docsIndex.fields.forEach(field => {
                 console.log(`  - ${field.name}: ${field.type}`);
-                console.log(`    Key: ${field.key}, Searchable: ${field.searchable}, Filterable: ${field.filterable}`);
-                console.log(`    Sortable: ${field.sortable}, Facetable: ${field.facetable}`);
-                if (field.analyzer) {
+
+                // Type-safe property access with type guards
+                if ('key' in field) {
+                    console.log(`    Key: ${field.key}, Searchable: ${field.searchable}, Filterable: ${field.filterable}`);
+                    console.log(`    Sortable: ${field.sortable}, Facetable: ${field.facetable}`);
+                }
+
+                if ('analyzer' in field && field.analyzer) {
                     console.log(`    Analyzer: ${field.analyzer}`);
                 }
-                if (field.dimensions) {
+
+                if ('dimensions' in field && field.dimensions) {
                     console.log(`    Dimensions: ${field.dimensions}`);
                 }
+
                 console.log('');
             });
 

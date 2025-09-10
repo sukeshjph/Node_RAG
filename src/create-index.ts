@@ -1,11 +1,23 @@
 import { AzureKeyCredential, SearchIndex, SearchIndexClient } from '@azure/search-documents';
 
+import { IndexedChunk } from './types.js';
 import { config } from 'dotenv';
 import fs from 'fs';
 import path from 'path';
 
 // Load environment variables
 config();
+
+// Example usage of IndexedChunk interface for type-safe document ingestion:
+// const document: IndexedChunk = {
+//   id: "doc-1-chunk-1",
+//   filename: "example.pdf",
+//   page: 1,
+//   chunk_index: 0,
+//   content: "This is the content of the document chunk...",
+//   contentVector: [0.1, 0.2, 0.3, ...], // 3072 dimensions
+//   createdUtc: new Date().toISOString()
+// };
 
 // Type-safe environment variable access
 const endpoint: string | undefined = process.env.AZURE_SEARCH_ENDPOINT;
