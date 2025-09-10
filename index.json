@@ -1,0 +1,95 @@
+{
+    "name": "docs_v1",
+    "fields": [
+        {
+            "name": "id",
+            "type": "Edm.String",
+            "key": true,
+            "searchable": false,
+            "filterable": false,
+            "sortable": false,
+            "facetable": false,
+            "retrievable": true
+        },
+        {
+            "name": "filename",
+            "type": "Edm.String",
+            "key": false,
+            "searchable": false,
+            "filterable": true,
+            "sortable": false,
+            "facetable": true,
+            "retrievable": true
+        },
+        {
+            "name": "page",
+            "type": "Edm.Int32",
+            "key": false,
+            "searchable": false,
+            "filterable": true,
+            "sortable": true,
+            "facetable": false,
+            "retrievable": true
+        },
+        {
+            "name": "chunk_index",
+            "type": "Edm.Int32",
+            "key": false,
+            "searchable": false,
+            "filterable": true,
+            "sortable": true,
+            "facetable": false,
+            "retrievable": true
+        },
+        {
+            "name": "content",
+            "type": "Edm.String",
+            "key": false,
+            "searchable": true,
+            "filterable": false,
+            "sortable": false,
+            "facetable": false,
+            "retrievable": true,
+            "analyzer": "standard"
+        },
+        {
+            "name": "contentVector",
+            "type": "Collection(Edm.Single)",
+            "key": false,
+            "searchable": false,
+            "filterable": false,
+            "sortable": false,
+            "facetable": false,
+            "retrievable": true,
+            "dimensions": 3072,
+            "vectorSearchProfile": "default-vector-profile"
+        },
+        {
+            "name": "createdUtc",
+            "type": "Edm.DateTimeOffset",
+            "key": false,
+            "searchable": false,
+            "filterable": true,
+            "sortable": true,
+            "facetable": false,
+            "retrievable": true
+        }
+    ],
+    "vectorSearch": {
+        "profiles": [
+            {
+                "name": "default-vector-profile",
+                "algorithm": "hnsw-cosine"
+            }
+        ],
+        "algorithms": [
+            {
+                "name": "hnsw-cosine",
+                "kind": "hnsw",
+                "parameters": {
+                    "metric": "cosine"
+                }
+            }
+        ]
+    }
+}
