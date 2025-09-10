@@ -1,12 +1,13 @@
-import { AzureKeyCredential, SearchIndexClient } from '@azure/search-documents';
+import { AzureKeyCredential, SearchIndex, SearchIndexClient } from '@azure/search-documents';
 
 import { config } from 'dotenv';
 
 // Load environment variables
 config();
 
-const endpoint = process.env.AZURE_SEARCH_ENDPOINT;
-const key = process.env.AZURE_SEARCH_KEY;
+// Type-safe environment variable access
+const endpoint: string | undefined = process.env.AZURE_SEARCH_ENDPOINT;
+const key: string | undefined = process.env.AZURE_SEARCH_KEY;
 
 if (!endpoint || !key) {
     console.error('Please set AZURE_SEARCH_ENDPOINT and AZURE_SEARCH_KEY in your .env file');
@@ -16,12 +17,12 @@ if (!endpoint || !key) {
 // Create the search client
 const client = new SearchIndexClient(endpoint, new AzureKeyCredential(key));
 
-async function listIndexes() {
+async function listIndexes(): Promise<void> {
     try {
         console.log('Listing all indexes in the search service...\n');
 
         // List all indexes
-        const indexes = [];
+        const indexes: SearchIndex[] = [];
         for await (const index of client.listIndexes()) {
             indexes.push(index);
         }
@@ -69,9 +70,10 @@ async function listIndexes() {
             console.log('\ndocs_v1 index not found.');
         }
 
-    } catch (error) {
-        console.error('Error listing indexes:', error.message);
-        if (error.code === 'Unauthorized') {
+    } catch (error: unknown) {
+        const err = error as Error & { code?: string };
+        console.error('Error listing indexes:', err.message);
+        if (err.code === 'Unauthorized') {
             console.error('This might be due to invalid credentials or endpoint');
         }
     }
