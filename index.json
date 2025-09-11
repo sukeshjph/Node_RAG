@@ -1,44 +1,35 @@
 {
-    // Index name - must be unique within the search service
     "name": "docs_v1",
-    // Field definitions for the index
     "fields": [
         {
-            // Primary key field - must be unique for each document
             "name": "id",
             "type": "Edm.String",
             "key": true
         },
         {
-            // Text content field - searchable for full-text search
             "name": "content",
             "type": "Edm.String",
             "searchable": true
         },
         {
-            // Vector field for semantic/vector search
-            // Collection(Edm.Single) = array of floating-point numbers
             "name": "contentVector",
             "type": "Collection(Edm.Single)",
             "searchable": true,
-            "dimensions": 3072, // Vector dimension size (must match embedding model output)
-            "vectorSearchProfile": "my-profile" // Links to vector search profile below
+            "dimensions": 3072,
+            "vectorSearchProfile": "my-profile"
         }
     ],
-    // Vector search configuration for semantic search capabilities
     "vectorSearch": {
-        // Define vector search algorithms
         "algorithms": [
             {
-                "name": "hnsw", // Hierarchical Navigable Small World algorithm
-                "kind": "hnsw" // Algorithm type for approximate nearest neighbor search
+                "name": "hnsw",
+                "kind": "hnsw"
             }
         ],
-        // Define vector search profiles that reference algorithms
         "profiles": [
             {
-                "name": "my-profile", // Profile name referenced by contentVector field
-                "algorithm": "hnsw" // References the algorithm defined above
+                "name": "my-profile",
+                "algorithm": "hnsw"
             }
         ]
     }
