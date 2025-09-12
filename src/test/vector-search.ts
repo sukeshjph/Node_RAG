@@ -61,29 +61,3 @@ async function main() {
 
 main().catch(console.error);
 
-az rest \
---method post \
---url "https://azureaisearchsukeshs1.search.windows.net/indexes/docs_v1/docs/search?api-version=2024-07-01" \
---headers "Content-Type=application/json" "api-key:<YOUR-SEARCH-KEY>" \
---body '{
-"vectorQueries": [
-    {
-        "vector": [
-            -0.0019561168737709522,
-            0.003626646939665079,
-            -0.004050421062856913,
-            0.0038723130710422993,
-            -0.002095839474350214,
-            -0.013032590970396996,
-            -0.025303615257143974,
-            0.035253096371889114,
-            -0.032698169350624084,
-            0.007333135232329369
-        ],
-        "fields": ["contentVector"],
-        "kNearestNeighborsCount": 3
-    }
-],
-    "select": "id,content"
-  }'
-

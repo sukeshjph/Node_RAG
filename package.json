@@ -6,12 +6,12 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/create-index.js",
-    "create-index": "node --loader ts-node/esm src/create-index.ts",
-    "test-index": "node --loader ts-node/esm src/test-index.ts",
-    "test-embedding": "node --loader ts-node/esm src/embed.ts",
-    "upload-vector-doc": "node --loader ts-node/esm src/upload-vector-doc.ts",
-    "get-index": "node --loader ts-node/esm src/get-index.ts",
-    "vector-search": "node --loader ts-node/esm src/vector-search.ts",
+    "create-index": "node --loader ts-node/esm src/test/create-index.ts",
+    "test-index": "node --loader ts-node/esm src/test/test-index.ts",
+    "test-embedding": "node --loader ts-node/esm src/test/embed.ts",
+    "upload-vector-doc": "node --loader ts-node/esm src/test/upload-vector-doc.ts",
+    "get-index": "node --loader ts-node/esm src/test/get-index.ts",
+    "vector-search": "node --loader ts-node/esm src/test/vector-search.ts",
     "clean": "rm -rf dist"
   },
   "dependencies": {
