@@ -12,14 +12,17 @@
     "upload-vector-doc": "node --loader ts-node/esm src/test/upload-vector-doc.ts",
     "get-index": "node --loader ts-node/esm src/test/get-index.ts",
     "vector-search": "node --loader ts-node/esm src/test/vector-search.ts",
-    "injestion": "node --loader ts-node/esm src/injestion/injestion.ts",
+    "ingest": "node --loader ts-node/esm src/injestion/injestion.ts",
     "clean": "rm -rf dist"
   },
   "dependencies": {
     "@azure/openai": "^2.0.0",
     "@azure/search-documents": "^12.1.0",
-    "dotenv": "^17.2.2",
+    "@langchain/community": "^0.3.55",
+    "@langchain/openai": "^0.6.11",
+    "dotenv": "^16.4.5",
     "js-tiktoken": "^1.0.21",
+    "langchain": "^0.3.33",
     "openai": "^5.20.1"
   },
   "devDependencies": {
