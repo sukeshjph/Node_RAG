@@ -29,7 +29,7 @@ async function embedQuery(text: string): Promise<number[]> {
 }
 
 async function main() {
-    const queryText = "oil price increase due to supply cuts";
+    const queryText = "Men’s Waterproof Jacket";
     const queryVector = await embedQuery(queryText);
 
     const vectorQuery: any = {
