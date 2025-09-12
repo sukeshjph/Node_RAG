@@ -29,19 +29,18 @@ async function embedQuery(text: string): Promise<number[]> {
 }
 
 async function main() {
-    const queryText = "Men’s Waterproof Jacket";
+    const queryText = "Automotive components accounted for 60% of total output";
     const queryVector = await embedQuery(queryText);
 
-    const vectorQuery: any = {
+    const vectorQuery = {
+        kind: "vector" as const,
         vector: queryVector,
         fields: ["contentVector"],   // target the vector field
-        kNearestNeighborsCount: 3    // top 3 most similar docs
+        k: 3    // top 3 most similar docs
     };
 
     const results = await searchClient.search("", {
         vectorQueries: [vectorQuery],
-        searchFields: [],
-        searchMode: "all",
         select: ["id", "content"]   // only retrievable fields
     } as any);
 
@@ -49,8 +48,8 @@ async function main() {
     for await (const result of results.results) {
         const doc = result.document as any;
         console.log({
-            id: doc?.id,
-            content: doc?.content,
+            id: doc.id,
+            content: doc.content,
             score: result.score
         });
     }
