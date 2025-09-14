@@ -11,7 +11,7 @@ validateConfig();
 // Azure Search client
 const searchClient = new SearchClient(
     config.azure.search.endpoint,
-    config.azure.search.index,
+    config.azure.search.alias,
     new AzureKeyCredential(config.azure.search.key)
 );
 
@@ -33,7 +33,7 @@ async function embedQuery(text: string): Promise<number[]> {
 }
 
 async function main() {
-    const queryText = "Automotive components accounted for 60% of total output";
+    const queryText = "The Games budget was estimated at USD 8.7 billion with cost overruns of 115%";
     const queryVector = await embedQuery(queryText);
 
     const vectorQuery = {

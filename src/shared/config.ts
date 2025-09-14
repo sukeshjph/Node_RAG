@@ -9,6 +9,7 @@ export const config = {
             endpoint: process.env.AZURE_SEARCH_ENDPOINT as string,
             key: process.env.AZURE_SEARCH_KEY as string,
             index: process.env.AZURE_SEARCH_INDEX as string,
+            alias: process.env.AZURE_SEARCH_ALIAS as string,
         },
         openai: {
             endpoint: process.env.AZURE_OPENAI_ENDPOINT as string,
