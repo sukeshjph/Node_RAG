@@ -71,7 +71,7 @@ function chunkText(text: string, maxTokens = 500, overlap = 50, encoder: any): s
     const chunks: string[] = [];
 
     for (let i = 0; i < tokens.length; i += (maxTokens - overlap)) {
-        const slice = tokens.slice(i, i + maxTokens);
+        const slice = tokens.slice(i, i + maxTokens);'ve a'
         chunks.push(encoder.decode(slice));
     }
 
