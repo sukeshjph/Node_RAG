@@ -1,6 +1,7 @@
 import 'dotenv/config';
 
 import { AzureKeyCredential, SearchClient } from "@azure/search-documents";
+import { config, validateConfig } from '../shared/config.js';
 
 import { AzureOpenAI } from "openai";
 import { DirectoryLoader } from "langchain/document_loaders/fs/directory";
@@ -29,27 +30,29 @@ interface IndexedDoc {
 // ======================
 // 2. Setup Clients
 // ======================
+validateConfig();
+
 const openai = new AzureOpenAI({
-    endpoint: process.env.AZURE_OPENAI_ENDPOINT as string,
-    apiKey: process.env.AZURE_OPENAI_API_KEY as string,
-    deployment: process.env.AZURE_OPENAI_DEPLOYMENT_NAME as string,
-    apiVersion: "2024-10-21"
+    endpoint: config.azure.openai.endpoint,
+    apiKey: config.azure.openai.apiKey,
+    deployment: config.azure.openai.deployment,
+    apiVersion: config.azure.openai.apiVersion
 });
 
 const searchClient = new SearchClient<IndexedDoc>(
-    process.env.AZURE_SEARCH_ENDPOINT as string,
-    process.env.AZURE_SEARCH_INDEX_V2 as string,
-    new AzureKeyCredential(process.env.AZURE_SEARCH_KEY as string)
+    config.azure.search.endpoint,
+    config.azure.search.index,
+    new AzureKeyCredential(config.azure.search.key)
 );
 
 // LangChain embeddings client
 const embeddings = new OpenAIEmbeddings({
-    openAIApiKey: process.env.AZURE_OPENAI_API_KEY as string,
+    openAIApiKey: config.azure.openai.apiKey,
     configuration: {
-        baseURL: `${process.env.AZURE_OPENAI_ENDPOINT}/openai/deployments/${process.env.AZURE_OPENAI_DEPLOYMENT_NAME}`,
-        defaultQuery: { "api-version": "2024-10-21" },
+        baseURL: `${config.azure.openai.endpoint}/openai/deployments/${config.azure.openai.deployment}`,
+        defaultQuery: { "api-version": config.azure.openai.apiVersion },
         defaultHeaders: {
-            "api-key": process.env.AZURE_OPENAI_API_KEY as string,
+            "api-key": config.azure.openai.apiKey,
         },
     },
 });
@@ -183,12 +186,6 @@ async function ingestFile(filePath: string): Promise<void> {
                 content: doc.pageContent,
                 contentVector,
                 chatVector,
-                source: filePath,
-                metadata: {
-                    chunkIndex: i,
-                    totalChunks: splitDocs.length,
-                    chunkSize: doc.pageContent.length
-                }
             });
 
         } catch (error) {
