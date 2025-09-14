@@ -1,0 +1,39 @@
+{
+  "name": "azureaiproject",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/create-index.js",
+    "create-index": "node --loader ts-node/esm src/createorUpdateIndex/create-index.ts",
+    "create-index-rest": "node --loader ts-node/esm src/createorUpdateIndex/create-index-rest.ts",
+    "test-index": "node --loader ts-node/esm src/test/test-index.ts",
+    "test-embedding": "node --loader ts-node/esm src/test/embed.ts",
+    "upload-vector-doc": "node --loader ts-node/esm src/test/upload-vector-doc.ts",
+    "get-index": "node --loader ts-node/esm src/test/get-index.ts",
+    "vector-search": "node --loader ts-node/esm src/vector-search/vector-search.ts",
+    "ingest": "node --loader ts-node/esm src/injestion/injestion.ts",
+    "ingest-langchain": "node --loader ts-node/esm src/injestion/langchain-ingestion.ts",
+    "create-alias": "node --loader ts-node/esm src/create-alias/create-alias.ts",
+    "alias-manager": "node --loader ts-node/esm src/create-alias/alias-manager.ts",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@azure/openai": "^2.0.0",
+    "@azure/search-documents": "^12.2.0-beta.1",
+    "@langchain/community": "^0.3.55",
+    "@langchain/core": "^0.3.75",
+    "@langchain/openai": "^0.6.11",
+    "dotenv": "^16.4.5",
+    "js-tiktoken": "^1.0.21",
+    "langchain": "^0.3.33",
+    "node-fetch": "^3.3.2",
+    "openai": "^5.20.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.30",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3"
+  }
+}
