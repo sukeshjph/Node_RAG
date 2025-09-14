@@ -27,7 +27,7 @@ const config = {
             endpoint: process.env.AZURE_OPENAI_ENDPOINT as string,
             apiKey: process.env.AZURE_OPENAI_API_KEY as string,
             chatDeployment: "text-embedding-3-large",
-            productDeployment: "text-embedding-3-small",
+            productDeployment: "text-embedding-3-large",
             apiVersion: "2024-10-21" as const,
         },
         search: {
