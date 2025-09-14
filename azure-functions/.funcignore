@@ -1,0 +1,8 @@
+.git*
+.vscode
+local.settings.json
+test
+.nyc_output
+node_modules
+dist
+.env

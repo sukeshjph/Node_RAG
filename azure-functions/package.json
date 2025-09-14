@@ -1,0 +1,32 @@
+{
+    "name": "azure-functions-ingest-documents",
+    "version": "1.0.0",
+    "description": "Azure Function for ingesting documents into Azure Cognitive Search",
+    "main": "dist/index.js",
+    "scripts": {
+        "build": "tsc",
+        "watch": "tsc -w",
+        "prestart": "npm run build",
+        "start": "func start",
+        "test": "mocha test/**/*.test.js",
+        "test:watch": "mocha test/**/*.test.js --watch"
+    },
+    "dependencies": {
+        "@azure/functions": "^4.0.0",
+        "@azure/search-documents": "^12.0.0",
+        "@azure/storage-blob": "^12.17.0",
+        "openai": "^4.0.0",
+        "js-tiktoken": "^1.0.0"
+    },
+    "devDependencies": {
+        "@types/node": "^20.0.0",
+        "typescript": "^5.0.0",
+        "azure-functions-core-tools": "^4.0.0",
+        "mocha": "^10.0.0",
+        "chai": "^4.3.0",
+        "sinon": "^15.0.0"
+    },
+    "engines": {
+        "node": ">=18.0.0"
+    }
+}
