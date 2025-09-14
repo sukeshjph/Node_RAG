@@ -1,6 +1,6 @@
 import { AzureKeyCredential, SearchIndex, SearchIndexClient } from '@azure/search-documents';
 
-import { IndexedChunk } from './types.js';
+import { IndexedChunk } from '../test/types.js';
 import { config } from 'dotenv';
 import fs from 'fs';
 import path from 'path';

@@ -7,7 +7,7 @@ import { AzureOpenAI } from "openai";
 // Azure Search client
 const searchClient = new SearchClient(
     process.env.AZURE_SEARCH_ENDPOINT || "",
-    process.env.AZURE_SEARCH_INDEX || "docs_v1",
+    process.env.AZURE_SEARCH_ALIAS || "",
     new AzureKeyCredential(process.env.AZURE_SEARCH_KEY || "")
 );
 

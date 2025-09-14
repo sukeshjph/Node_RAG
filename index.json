@@ -1,5 +1,5 @@
 {
-    "name": "docs_v1",
+    "name": "docs_v2",
     "fields": [
         {
             "name": "id",
@@ -16,20 +16,59 @@
             "type": "Collection(Edm.Single)",
             "searchable": true,
             "dimensions": 3072,
-            "vectorSearchProfile": "my-profile"
+            "vectorSearchProfile": "recall-profile"
+        },
+        {
+            "name": "chatVector",
+            "type": "Collection(Edm.Single)",
+            "searchable": true,
+            "dimensions": 3072,
+            "vectorSearchProfile": "recall-profile"
+        },
+        {
+            "name": "productVector",
+            "type": "Collection(Edm.Single)",
+            "searchable": true,
+            "dimensions": 768,
+            "vectorSearchProfile": "fast-profile"
+        },
+        {
+            "name": "filename",
+            "type": "Edm.String",
+            "filterable": true
+        },
+        {
+            "name": "category",
+            "type": "Edm.String",
+            "filterable": true,
+            "facetable": true
+        },
+        {
+            "name": "createdUtc",
+            "type": "Edm.DateTimeOffset",
+            "filterable": true,
+            "sortable": true
         }
     ],
     "vectorSearch": {
         "algorithms": [
             {
-                "name": "hnsw",
+                "name": "hnsw-fast",
+                "kind": "hnsw"
+            },
+            {
+                "name": "hnsw-accurate",
                 "kind": "hnsw"
             }
         ],
         "profiles": [
             {
-                "name": "my-profile",
-                "algorithm": "hnsw"
+                "name": "fast-profile",
+                "algorithm": "hnsw-fast"
+            },
+            {
+                "name": "recall-profile",
+                "algorithm": "hnsw-accurate"
             }
         ]
     }
