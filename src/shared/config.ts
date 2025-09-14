@@ -8,7 +8,8 @@ export const config = {
         search: {
             endpoint: process.env.AZURE_SEARCH_ENDPOINT as string,
             key: process.env.AZURE_SEARCH_KEY as string,
-            index: process.env.AZURE_SEARCH_INDEX as string,
+            index: process.env.AZURE_SEARCH_INDEX_V3 as string,
+            alias: process.env.AZURE_SEARCH_ALIAS as string,
         },
         openai: {
             endpoint: process.env.AZURE_OPENAI_ENDPOINT as string,
@@ -26,6 +27,7 @@ export function validateConfig() {
     const required = [
         'AZURE_SEARCH_ENDPOINT',
         'AZURE_SEARCH_KEY',
+        'AZURE_SEARCH_ALIAS',
         'AZURE_OPENAI_ENDPOINT',
         'AZURE_OPENAI_API_KEY',
         'AZURE_OPENAI_DEPLOYMENT_NAME'

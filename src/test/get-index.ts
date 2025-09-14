@@ -7,14 +7,14 @@ validateConfig();
 
 const searchClient = new SearchClient(
     config.azure.search.endpoint,
-    config.azure.search.index,
+    config.azure.search.alias,
     new AzureKeyCredential(config.azure.search.key)
 );
 
 async function main() {
     console.log("🔍 Listing documents...");
     const results = await searchClient.search("*", {
-        select: ["id", "content"]
+        select: ["id", "content", "metadata"]
     });
 
     for await (const result of results.results) {

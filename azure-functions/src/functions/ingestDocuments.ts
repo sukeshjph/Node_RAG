@@ -11,8 +11,8 @@ import { encodingForModel } from "js-tiktoken";
 interface IndexedDocument {
     id: string;
     content: string;
+    contentVector: number[];
     chatVector: number[];
-    productVector: number[];
     filename: string;
     category: string;
     createdUtc: string;
@@ -26,8 +26,8 @@ const config = {
         openai: {
             endpoint: process.env.AZURE_OPENAI_ENDPOINT as string,
             apiKey: process.env.AZURE_OPENAI_API_KEY as string,
-            chatDeployment: "text-embedding-3-large",
-            productDeployment: "text-embedding-3-small",
+            contentDeployment: "text-embedding-3-large",    // 3072 dimensions
+            chatDeployment: "text-embedding-3-large",       // 3072 dimensions
             apiVersion: "2024-10-21" as const,
         },
         search: {
@@ -63,15 +63,15 @@ const blobServiceClient = BlobServiceClient.fromConnectionString(
 // ======================
 // Text Processing Utilities
 // ======================
+const contentEncoder = encodingForModel("text-embedding-3-large");
 const chatEncoder = encodingForModel("text-embedding-3-large");
-const productEncoder = encodingForModel("text-embedding-3-small");
 
 function chunkText(text: string, maxTokens = 500, overlap = 50, encoder: any): string[] {
     const tokens = encoder.encode(text);
     const chunks: string[] = [];
 
     for (let i = 0; i < tokens.length; i += (maxTokens - overlap)) {
-        const slice = tokens.slice(i, i + maxTokens);
+        const slice = tokens.slice(i, i + maxTokens);'ve a'
         chunks.push(encoder.decode(slice));
     }
 
@@ -87,23 +87,23 @@ function generateSafeId(filename: string, chunkIndex: number): string {
 // ======================
 // Embedding Generation
 // ======================
-async function generateEmbeddings(content: string): Promise<{ chatVector: number[], productVector: number[] }> {
+async function generateEmbeddings(content: string): Promise<{ contentVector: number[], chatVector: number[] }> {
     try {
+        // Generate content embedding (3072 dimensions)
+        const contentResponse = await openai.embeddings.create({
+            model: config.azure.openai.contentDeployment,
+            input: content
+        });
+
         // Generate chat embedding (3072 dimensions)
         const chatResponse = await openai.embeddings.create({
             model: config.azure.openai.chatDeployment,
             input: content
         });
 
-        // Generate product embedding (768 dimensions)
-        const productResponse = await openai.embeddings.create({
-            model: config.azure.openai.productDeployment,
-            input: content
-        });
-
         return {
-            chatVector: chatResponse.data[0].embedding as number[],
-            productVector: productResponse.data[0].embedding as number[]
+            contentVector: contentResponse.data[0].embedding as number[],
+            chatVector: chatResponse.data[0].embedding as number[]
         };
     } catch (error) {
         throw new Error(`Failed to generate embeddings: ${error}`);
@@ -116,8 +116,8 @@ async function generateEmbeddings(content: string): Promise<{ chatVector: number
 async function processDocument(content: string, filename: string): Promise<IndexedDocument[]> {
     const documents: IndexedDocument[] = [];
 
-    // Split text into chunks using chat encoder (larger model for better chunking)
-    const chunks = chunkText(content, 500, 50, chatEncoder);
+    // Split text into chunks using content encoder (3072 dims for better chunking)
+    const chunks = chunkText(content, 500, 50, contentEncoder);
 
     console.log(`📄 File: ${filename} - Split into ${chunks.length} chunks`);
 
@@ -126,13 +126,13 @@ async function processDocument(content: string, filename: string): Promise<Index
             const chunk = chunks[i];
 
             // Generate embeddings for this chunk
-            const { chatVector, productVector } = await generateEmbeddings(chunk);
+            const { contentVector, chatVector } = await generateEmbeddings(chunk);
 
             const document: IndexedDocument = {
                 id: generateSafeId(filename, i),
                 content: chunk,
+                contentVector,
                 chatVector,
-                productVector,
                 filename,
                 category: "ingested",
                 createdUtc: new Date().toISOString()

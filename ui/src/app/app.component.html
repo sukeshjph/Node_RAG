@@ -1,0 +1,80 @@
+<!-- App Component Template -->
+<div class="app-container">
+    <!-- Sidenav -->
+    <mat-sidenav-container class="sidenav-container">
+        <mat-sidenav #sidenav mode="side" opened="true" class="sidenav" [class.handset]="isHandset">
+
+            <!-- Sidenav Header -->
+            <div class="sidenav-header">
+                <mat-icon class="app-icon">chat</mat-icon>
+                <h1 class="app-title">RAG Chat</h1>
+            </div>
+
+            <!-- Navigation Menu -->
+            <mat-nav-list class="nav-list">
+                <!-- Chat Navigation -->
+                <a mat-list-item routerLink="/chat" routerLinkActive="active" (click)="closeSidebar()" class="nav-item">
+                    <mat-icon matListItemIcon>chat</mat-icon>
+                    <span matListItemTitle>Chat</span>
+                    <span matListItemMeta>Ask questions</span>
+                </a>
+
+                <!-- Upload Navigation -->
+                <a mat-list-item routerLink="/upload" routerLinkActive="active" (click)="closeSidebar()"
+                    class="nav-item">
+                    <mat-icon matListItemIcon>cloud_upload</mat-icon>
+                    <span matListItemTitle>Upload</span>
+                    <span matListItemMeta>Add documents</span>
+                </a>
+            </mat-nav-list>
+
+            <!-- Sidenav Footer -->
+            <div class="sidenav-footer">
+                <!-- Service Health -->
+                <div class="health-status">
+                    <mat-icon [color]="getHealthStatusColor()" class="health-icon">
+                        {{ serviceHealthy ? 'check_circle' : 'error' }}
+                    </mat-icon>
+                    <span class="health-text">{{ getHealthStatusText() }}</span>
+                </div>
+
+                <!-- Theme Toggle -->
+                <button mat-icon-button (click)="toggleTheme()" class="theme-toggle" matTooltip="Toggle theme">
+                    <mat-icon>{{ isDarkTheme ? 'light_mode' : 'dark_mode' }}</mat-icon>
+                </button>
+            </div>
+        </mat-sidenav>
+
+        <!-- Main Content -->
+        <mat-sidenav-content class="main-content">
+            <!-- Top Toolbar -->
+            <mat-toolbar class="top-toolbar">
+                <button mat-icon-button (click)="toggleSidebar()" class="menu-button">
+                    <mat-icon>menu</mat-icon>
+                </button>
+
+                <span class="toolbar-title">RAG Chat UI</span>
+
+                <div class="toolbar-spacer"></div>
+
+                <!-- Service Health Indicator -->
+                <div class="health-indicator">
+                    <mat-icon [color]="getHealthStatusColor()" class="health-icon">
+                        {{ serviceHealthy ? 'check_circle' : 'error' }}
+                    </mat-icon>
+                    <span class="health-text">{{ getHealthStatusText() }}</span>
+                </div>
+
+                <!-- Theme Toggle -->
+                <button mat-icon-button (click)="toggleTheme()" class="theme-toggle" matTooltip="Toggle theme">
+                    <mat-icon>{{ isDarkTheme ? 'light_mode' : 'dark_mode' }}</mat-icon>
+                </button>
+            </mat-toolbar>
+
+            <!-- Router Outlet -->
+            <div class="content-container">
+                <router-outlet></router-outlet>
+            </div>
+        </mat-sidenav-content>
+    </mat-sidenav-container>
+</div>

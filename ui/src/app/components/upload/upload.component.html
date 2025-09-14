@@ -1,0 +1,184 @@
+<!-- Upload Component Template -->
+<div class="upload-container">
+    <!-- Upload Header -->
+    <div class="upload-header">
+        <h2>Document Upload</h2>
+        <p>Upload documents to make them searchable in the chat interface</p>
+    </div>
+
+    <!-- Upload Area -->
+    <div class="upload-area" [class.drag-over]="dragOver" [class.drag-drop-supported]="isDragDropSupported()"
+        (dragover)="onDragOver($event)" (dragleave)="onDragLeave($event)" (drop)="onDrop($event)"
+        (click)="openFilePicker()">
+
+        <!-- Upload Content -->
+        <div class="upload-content">
+            <mat-icon class="upload-icon">cloud_upload</mat-icon>
+            <h3>Drop files here or click to browse</h3>
+            <p>Supported formats: .txt, .pdf (Max 10MB per file)</p>
+
+            <!-- File Input (Hidden) -->
+            <input #fileInput type="file" multiple accept=".txt,.pdf" (change)="onFileSelected($event)"
+                style="display: none;">
+
+            <!-- Upload Button -->
+            <button mat-raised-button color="primary" (click)="openFilePicker()" class="browse-button">
+                <mat-icon>folder_open</mat-icon>
+                Browse Files
+            </button>
+        </div>
+    </div>
+
+    <!-- Upload Stats -->
+    <div *ngIf="uploadStats && hasFiles()" class="upload-stats">
+        <mat-card>
+            <mat-card-content>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <mat-icon>description</mat-icon>
+                        <span class="stat-label">Total Files</span>
+                        <span class="stat-value">{{ uploadStats.totalFiles }}</span>
+                    </div>
+                    <div class="stat-item">
+                        <mat-icon>check_circle</mat-icon>
+                        <span class="stat-label">Completed</span>
+                        <span class="stat-value">{{ uploadStats.completedFiles }}</span>
+                    </div>
+                    <div class="stat-item">
+                        <mat-icon>error</mat-icon>
+                        <span class="stat-label">Failed</span>
+                        <span class="stat-value">{{ uploadStats.failedFiles }}</span>
+                    </div>
+                    <div class="stat-item">
+                        <mat-icon>storage</mat-icon>
+                        <span class="stat-label">Total Size</span>
+                        <span class="stat-value">{{ formatFileSize(uploadStats.totalSize) }}</span>
+                    </div>
+                </div>
+
+                <!-- Overall Progress -->
+                <div *ngIf="isUploading" class="overall-progress">
+                    <mat-progress-bar mode="determinate" [value]="getTotalProgress()">
+                    </mat-progress-bar>
+                    <span class="progress-text">{{ getTotalProgress() }}% Complete</span>
+                </div>
+            </mat-card-content>
+        </mat-card>
+    </div>
+
+    <!-- File List -->
+    <div *ngIf="hasFiles()" class="file-list">
+        <mat-card>
+            <mat-card-header>
+                <mat-card-title>Files</mat-card-title>
+                <mat-card-subtitle>{{ files.length }} file(s) selected</mat-card-subtitle>
+            </mat-card-header>
+
+            <mat-card-content>
+                <!-- File Items -->
+                <div class="file-items">
+                    <div *ngFor="let file of files; trackBy: trackByFileId" class="file-item"
+                        [class.uploading]="isUploadingFile(file)" [class.completed]="isCompletedFile(file)"
+                        [class.error]="isErrorFile(file)">
+
+                        <!-- File Info -->
+                        <div class="file-info">
+                            <mat-icon class="file-type-icon">{{ getFileTypeIcon(file) }}</mat-icon>
+                            <div class="file-details">
+                                <span class="file-name">{{ file.name }}</span>
+                                <span class="file-size">{{ formatFileSize(file.size) }}</span>
+                            </div>
+                        </div>
+
+                        <!-- File Status -->
+                        <div class="file-status">
+                            <mat-icon [color]="getFileStatusColor(file)" class="status-icon">
+                                {{ getFileStatusIcon(file) }}
+                            </mat-icon>
+                            <span class="status-text">{{ file.status }}</span>
+                        </div>
+
+                        <!-- Upload Progress -->
+                        <div *ngIf="isUploadingFile(file)" class="file-progress">
+                            <mat-progress-bar mode="determinate" [value]="file.progress">
+                            </mat-progress-bar>
+                            <span class="progress-text">{{ formatProgress(file.progress) }}</span>
+                        </div>
+
+                        <!-- Error Message -->
+                        <div *ngIf="hasError(file)" class="file-error">
+                            <mat-icon>error</mat-icon>
+                            <span>{{ file.error }}</span>
+                        </div>
+
+                        <!-- File Actions -->
+                        <div class="file-actions">
+                            <!-- Upload Button -->
+                            <button *ngIf="isPendingFile(file)" mat-icon-button (click)="uploadFile(file.id)"
+                                [disabled]="isUploading" matTooltip="Upload file">
+                                <mat-icon>cloud_upload</mat-icon>
+                            </button>
+
+                            <!-- Retry Button -->
+                            <button *ngIf="isErrorFile(file)" mat-icon-button (click)="uploadFile(file.id)"
+                                [disabled]="isUploading" matTooltip="Retry upload">
+                                <mat-icon>refresh</mat-icon>
+                            </button>
+
+                            <!-- Remove Button -->
+                            <button mat-icon-button (click)="removeFile(file.id)" [disabled]="isUploadingFile(file)"
+                                matTooltip="Remove file">
+                                <mat-icon>delete</mat-icon>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </mat-card-content>
+        </mat-card>
+    </div>
+
+    <!-- Action Buttons -->
+    <div *ngIf="hasFiles()" class="action-buttons">
+        <button mat-raised-button color="primary" (click)="uploadAllFiles()"
+            [disabled]="!hasPendingFiles() || isUploading" class="upload-all-button">
+            <mat-icon>cloud_upload</mat-icon>
+            Upload All Files
+        </button>
+
+        <button mat-raised-button color="accent" (click)="retryFailedUploads()"
+            [disabled]="!hasFailedFiles() || isUploading" class="retry-button">
+            <mat-icon>refresh</mat-icon>
+            Retry Failed
+        </button>
+
+        <button mat-stroked-button (click)="clearFiles()" [disabled]="isUploading" class="clear-button">
+            <mat-icon>clear_all</mat-icon>
+            Clear All
+        </button>
+    </div>
+
+    <!-- Error Banner -->
+    <div *ngIf="error" class="error-banner">
+        <mat-icon>error</mat-icon>
+        <span>{{ error }}</span>
+        <button mat-icon-button (click)="error = null">
+            <mat-icon>close</mat-icon>
+        </button>
+    </div>
+
+    <!-- Upload Instructions -->
+    <div class="upload-instructions">
+        <mat-card>
+            <mat-card-content>
+                <h4>Upload Instructions</h4>
+                <ul>
+                    <li>Supported file formats: .txt, .pdf</li>
+                    <li>Maximum file size: 10MB per file</li>
+                    <li>Files will be processed and made searchable in the chat interface</li>
+                    <li>You can drag and drop multiple files at once</li>
+                    <li>Upload progress will be shown for each file</li>
+                </ul>
+            </mat-card-content>
+        </mat-card>
+    </div>
+</div>

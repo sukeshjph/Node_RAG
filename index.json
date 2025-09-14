@@ -1,5 +1,5 @@
 {
-    "name": "docs_v2",
+    "name": "docs_v4",
     "fields": [
         {
             "name": "id",
@@ -29,7 +29,7 @@
             "name": "productVector",
             "type": "Collection(Edm.Single)",
             "searchable": true,
-            "dimensions": 768,
+            "dimensions": 1536,
             "vectorSearchProfile": "fast-profile"
         },
         {
@@ -48,6 +48,13 @@
             "type": "Edm.DateTimeOffset",
             "filterable": true,
             "sortable": true
+        },
+        {
+            "name": "metadata",
+            "type": "Edm.String",
+            "searchable": false,
+            "filterable": false,
+            "retrievable": true
         }
     ],
     "vectorSearch": {

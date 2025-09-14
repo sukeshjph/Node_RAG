@@ -39,7 +39,7 @@ async function listIndexes(): Promise<void> {
         });
 
         // Find and print the schema of docs_v1
-        const docsIndex = indexes.find(index => index.name === 'docs_v1');
+        const docsIndex = indexes.find(index => index.name === 'docs_v3');
 
         if (docsIndex) {
             console.log('\n=== Schema of docs_v1 ===');

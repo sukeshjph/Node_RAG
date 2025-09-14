@@ -11,7 +11,7 @@ validateConfig();
 // Azure Search client
 const searchClient = new SearchClient(
     config.azure.search.endpoint,
-    config.azure.search.index,
+    config.azure.search.alias,
     new AzureKeyCredential(config.azure.search.key)
 );
 
@@ -26,14 +26,14 @@ const openai = new AzureOpenAI({
 
 async function embedQuery(text: string): Promise<number[]> {
     const result = await openai.embeddings.create({
-        model: "text-embedding-3-large",
+        model: "text-embedding-3-small",
         input: text
     });
     return result.data[0].embedding;
 }
 
 async function main() {
-    const queryText = "Automotive components accounted for 60% of total output";
+    const queryText = "Assets under management increased by £2.3 billion";
     const queryVector = await embedQuery(queryText);
 
     const vectorQuery = {
