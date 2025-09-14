@@ -186,6 +186,9 @@ export async function ingestDocuments(myBlob: Buffer, context: InvocationContext
     const blobName = `docs-input/${filename}`;
 
     console.log(`🚀 Blob trigger function processed blob: ${blobName}`);
+    console.log(`📄 Filename: ${filename}`);
+    console.log(`📦 Blob size: ${myBlob.length} bytes`);
+    console.log(`⏰ Timestamp: ${new Date().toISOString()}`);
 
     try {
         // Validate file type (start with .txt files)
