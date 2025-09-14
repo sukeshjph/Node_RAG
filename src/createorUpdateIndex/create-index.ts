@@ -54,5 +54,9 @@ async function createOrUpdateIndex(): Promise<void> {
     }
 }
 
+
+
 // Run the function
 createOrUpdateIndex();
+
+

@@ -21,6 +21,7 @@ interface IndexedDoc {
     id: string;
     content: string;
     contentVector: number[];
+    chatVector: number[];
     source?: string;
     metadata?: Record<string, any>;
 }
@@ -37,7 +38,7 @@ const openai = new AzureOpenAI({
 
 const searchClient = new SearchClient<IndexedDoc>(
     process.env.AZURE_SEARCH_ENDPOINT as string,
-    process.env.AZURE_SEARCH_INDEX as string,
+    process.env.AZURE_SEARCH_INDEX_V2 as string,
     new AzureKeyCredential(process.env.AZURE_SEARCH_KEY as string)
 );
 
@@ -84,7 +85,22 @@ function safeId(source: string, chunkIndex: number): string {
 }
 
 // ======================
-// 6. LangChain Ingestion Pipeline
+// 6. Embedding Generation
+// ======================
+async function generateEmbeddings(content: string): Promise<{ contentVector: number[], chatVector: number[] }> {
+    // For now, using the same embedding for both
+    // In practice, you might want different processing for chat vs content
+    const contentEmbedding = await embeddings.embedQuery(content);
+    const chatEmbedding = await embeddings.embedQuery(content);
+
+    return {
+        contentVector: contentEmbedding,
+        chatVector: chatEmbedding
+    };
+}
+
+// ======================
+// 7. LangChain Ingestion Pipeline
 // ======================
 async function ingestDirectory(directoryPath: string): Promise<void> {
     console.log(`📁 Loading documents from: ${directoryPath}`);
@@ -106,13 +122,14 @@ async function ingestDirectory(directoryPath: string): Promise<void> {
         const doc = splitDocs[i];
 
         try {
-            // Generate embedding using LangChain
-            const embedding = await embeddings.embedQuery(doc.pageContent);
+            // Generate embeddings using LangChain
+            const { contentVector, chatVector } = await generateEmbeddings(doc.pageContent);
 
             docs.push({
                 id: safeId(doc.metadata.source || `doc-${i}`, i),
                 content: doc.pageContent,
-                contentVector: embedding,
+                contentVector,
+                chatVector,
             });
 
             console.log(`✅ Processed chunk ${i + 1}/${splitDocs.length}`);
@@ -132,7 +149,7 @@ async function ingestDirectory(directoryPath: string): Promise<void> {
 }
 
 // ======================
-// 7. Single File Ingestion
+// 8. Single File Ingestion
 // ======================
 async function ingestFile(filePath: string): Promise<void> {
     console.log(`📄 Processing file: ${filePath}`);
@@ -159,12 +176,19 @@ async function ingestFile(filePath: string): Promise<void> {
         const doc = splitDocs[i];
 
         try {
-            const embedding = await embeddings.embedQuery(doc.pageContent);
+            const { contentVector, chatVector } = await generateEmbeddings(doc.pageContent);
 
             docs.push({
                 id: safeId(filePath, i),
                 content: doc.pageContent,
-                contentVector: embedding,
+                contentVector,
+                chatVector,
+                source: filePath,
+                metadata: {
+                    chunkIndex: i,
+                    totalChunks: splitDocs.length,
+                    chunkSize: doc.pageContent.length
+                }
             });
 
         } catch (error) {
@@ -179,7 +203,7 @@ async function ingestFile(filePath: string): Promise<void> {
 }
 
 // ======================
-// 8. Main Execution
+// 9. Main Execution
 // ======================
 (async () => {
     try {

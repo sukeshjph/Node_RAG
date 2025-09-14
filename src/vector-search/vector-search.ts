@@ -35,7 +35,7 @@ async function main() {
     const vectorQuery = {
         kind: "vector" as const,
         vector: queryVector,
-        fields: ["contentVector"],   // target the vector field
+        fields: ["chatVector"],   // target the vector field
         k: 3    // top 3 most similar docs
     };
 
