@@ -1,0 +1,227 @@
+### RAG Query Service - Smoke Tests
+### This file contains sample HTTP requests for testing the RAG Query Service
+### Use with VS Code REST Client extension or similar tools
+
+@baseUrl = http://localhost:3000
+@contentType = application/json
+
+### ======================
+### Health Check Tests
+### ======================
+
+### Basic Health Check
+GET {{baseUrl}}/health
+
+### Detailed Health Check (tests all dependencies)
+GET {{baseUrl}}/health/detailed
+
+### Service Information
+GET {{baseUrl}}/info
+
+### ======================
+### RAG Query Tests
+### ======================
+
+### Basic Query - Simple question
+POST {{baseUrl}}/query
+Content-Type: {{contentType}}
+
+{
+  "q": "What is machine learning?"
+}
+
+### Query with Filters - Filter by category
+POST {{baseUrl}}/query
+Content-Type: {{contentType}}
+
+{
+  "q": "How does neural networks work?",
+  "filters": {
+    "category": "ingested"
+  }
+}
+
+### Query with Custom Parameters - Override search parameters
+POST {{baseUrl}}/query
+Content-Type: {{contentType}}
+
+{
+  "q": "What are the benefits of artificial intelligence?",
+  "k": 5,
+  "knn": 3,
+  "includeText": true
+}
+
+### Query with Multiple Filters - Complex filtering
+POST {{baseUrl}}/query
+Content-Type: {{contentType}}
+
+{
+  "q": "Explain deep learning algorithms",
+  "filters": {
+    "category": "research",
+    "filename": "ai-paper.txt"
+  },
+  "k": 10,
+  "includeText": true
+}
+
+### Query with Vector Field Override - Use different vector field
+POST {{baseUrl}}/query
+Content-Type: {{contentType}}
+
+{
+  "q": "What is natural language processing?",
+  "vectorField": "contentVector",
+  "k": 8,
+  "knn": 6
+}
+
+### ======================
+### Error Handling Tests
+### ======================
+
+### Empty Query - Should return validation error
+POST {{baseUrl}}/query
+Content-Type: {{contentType}}
+
+{
+  "q": ""
+}
+
+### Missing Query - Should return validation error
+POST {{baseUrl}}/query
+Content-Type: {{contentType}}
+
+{
+  "filters": {
+    "category": "test"
+  }
+}
+
+### Invalid Query Length - Should return validation error
+POST {{baseUrl}}/query
+Content-Type: {{contentType}}
+
+{
+  "q": "This is a very long query that exceeds the maximum allowed length of 1000 characters. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum. Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo. Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt. Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet, consectetur, adipisci velit, sed quia non numquam eius modi tempora incididunt ut labore et dolore magnam aliquam quaerat voluptatem. Ut enim ad minima veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."
+}
+
+### Invalid K Parameter - Should return validation error
+POST {{baseUrl}}/query
+Content-Type: {{contentType}}
+
+{
+  "q": "What is AI?",
+  "k": 150
+}
+
+### Invalid Vector Field - Should return validation error
+POST {{baseUrl}}/query
+Content-Type: {{contentType}}
+
+{
+  "q": "What is AI?",
+  "vectorField": ""
+}
+
+### ======================
+### Performance Tests
+### ======================
+
+### Complex Query - Test with complex technical question
+POST {{baseUrl}}/query
+Content-Type: {{contentType}}
+
+{
+  "q": "Explain the differences between supervised and unsupervised machine learning, including examples of algorithms and use cases for each approach.",
+  "k": 12,
+  "knn": 8,
+  "includeText": true
+}
+
+### Multi-topic Query - Test with multiple topics
+POST {{baseUrl}}/query
+Content-Type: {{contentType}}
+
+{
+  "q": "Compare and contrast artificial intelligence, machine learning, and deep learning. What are the key differences and how do they relate to each other?",
+  "filters": {
+    "category": "ingested"
+  },
+  "k": 15,
+  "includeText": true
+}
+
+### Technical Query - Test with specific technical terms
+POST {{baseUrl}}/query
+Content-Type: {{contentType}}
+
+{
+  "q": "What are the advantages and disadvantages of using convolutional neural networks for image recognition tasks?",
+  "k": 10,
+  "knn": 6,
+  "includeText": true
+}
+
+### ======================
+### Edge Cases
+### ======================
+
+### Very Short Query - Test with minimal input
+POST {{baseUrl}}/query
+Content-Type: {{contentType}}
+
+{
+  "q": "AI"
+}
+
+### Query with Special Characters - Test with special characters
+POST {{baseUrl}}/query
+Content-Type: {{contentType}}
+
+{
+  "q": "What is the difference between AI & ML? (Include examples)"
+}
+
+### Query with Numbers - Test with numerical data
+POST {{baseUrl}}/query
+Content-Type: {{contentType}}
+
+{
+  "q": "What are the top 5 machine learning algorithms and their accuracy rates?"
+}
+
+### ======================
+### Load Testing (Uncomment for load testing)
+### ======================
+
+### # Uncomment these for load testing
+### # Note: Run these in parallel to test concurrent requests
+
+### # Load Test Query 1
+### POST {{baseUrl}}/query
+### Content-Type: {{contentType}}
+### 
+### {
+###   "q": "What is machine learning?",
+###   "k": 5
+### }
+
+### # Load Test Query 2
+### POST {{baseUrl}}/query
+### Content-Type: {{contentType}}
+### 
+### {
+###   "q": "Explain neural networks",
+###   "k": 5
+### }
+
+### # Load Test Query 3
+### POST {{baseUrl}}/query
+### Content-Type: {{contentType}}
+### 
+### {
+###   "q": "What is deep learning?",
+###   "k": 5
+### }

@@ -1,0 +1,105 @@
+<!-- Chat Component Template -->
+<div class="chat-container">
+    <!-- Chat Header -->
+    <div class="chat-header">
+        <h2>RAG Chat</h2>
+        <div class="chat-actions">
+            <button mat-icon-button (click)="clearChat()" [disabled]="!hasMessages()" matTooltip="Clear chat history">
+                <mat-icon>clear_all</mat-icon>
+            </button>
+            <button mat-icon-button (click)="retryLastMessage()" [disabled]="!hasErrors()"
+                matTooltip="Retry last message">
+                <mat-icon>refresh</mat-icon>
+            </button>
+        </div>
+    </div>
+
+    <!-- Messages Container -->
+    <div class="messages-container" #messageContainer>
+        <!-- Welcome Message -->
+        <div *ngIf="!hasMessages()" class="welcome-message">
+            <mat-icon>chat</mat-icon>
+            <h3>Welcome to RAG Chat</h3>
+            <p>Ask me anything about your documents. I'll search through them and provide answers with citations.</p>
+        </div>
+
+        <!-- Messages -->
+        <div *ngFor="let message of messages; trackBy: trackByMessageId" [ngClass]="getMessageClasses(message)"
+            class="message">
+
+            <!-- User Message -->
+            <div *ngIf="isUserMessage(message)" class="message-content user-content">
+                <div class="message-bubble user-bubble">
+                    <p>{{ message.content }}</p>
+                    <span class="message-time">{{ formatTimestamp(message.timestamp) }}</span>
+                </div>
+                <button mat-icon-button (click)="copyMessage(message)" class="message-action" matTooltip="Copy message">
+                    <mat-icon>content_copy</mat-icon>
+                </button>
+            </div>
+
+            <!-- Assistant Message -->
+            <div *ngIf="isAssistantMessage(message)" class="message-content assistant-content">
+                <div class="message-bubble assistant-bubble">
+                    <div class="message-text" [innerHTML]="formatMessageContent(message.content)"></div>
+                    <span class="message-time">{{ formatTimestamp(message.timestamp) }}</span>
+
+                    <!-- Error Message -->
+                    <div *ngIf="hasError(message)" class="error-content">
+                        <mat-icon>error</mat-icon>
+                        <span>{{ message.error }}</span>
+                    </div>
+                </div>
+                <button mat-icon-button (click)="copyMessage(message)" class="message-action" matTooltip="Copy message">
+                    <mat-icon>content_copy</mat-icon>
+                </button>
+            </div>
+        </div>
+
+        <!-- Typing Indicator -->
+        <div *ngIf="shouldShowTypingIndicator()" class="typing-indicator">
+            <div class="typing-bubble">
+                <div class="typing-dots">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+                <span class="typing-text">Assistant is typing...</span>
+            </div>
+        </div>
+
+        <!-- Loading Spinner -->
+        <div *ngIf="shouldShowLoadingSpinner()" class="loading-indicator">
+            <mat-spinner diameter="30"></mat-spinner>
+            <span>Processing your request...</span>
+        </div>
+    </div>
+
+    <!-- Input Area -->
+    <div class="input-container">
+        <form [formGroup]="chatForm" (ngSubmit)="sendMessage()" class="input-form">
+            <mat-form-field appearance="outline" class="message-input">
+                <mat-label>Type your message...</mat-label>
+                <textarea matInput formControlName="message" placeholder="Ask me anything about your documents..."
+                    (keypress)="onKeyPress($event)" rows="1" cdkTextareaAutosize cdkAutosizeMinRows="1"
+                    cdkAutosizeMaxRows="4">
+        </textarea>
+                <mat-hint>Press Enter to send, Shift+Enter for new line</mat-hint>
+            </mat-form-field>
+
+            <button type="submit" mat-fab color="primary" [disabled]="!chatForm.valid || isLoading" class="send-button"
+                matTooltip="Send message">
+                <mat-icon>send</mat-icon>
+            </button>
+        </form>
+    </div>
+
+    <!-- Error Banner -->
+    <div *ngIf="error" class="error-banner">
+        <mat-icon>error</mat-icon>
+        <span>{{ error }}</span>
+        <button mat-icon-button (click)="error = null">
+            <mat-icon>close</mat-icon>
+        </button>
+    </div>
+</div>
