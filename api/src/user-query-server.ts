@@ -1,8 +1,8 @@
-import { config } from './config.js';
+import { config } from './config';
 import express from 'express';
 import pino from 'pino';
-import { processRAGQuery } from './user-query-prompt.js';
-import { retrieveDocuments } from './user-query-retriever.js';
+import { processRAGQuery } from './user-query-prompt';
+import { retrieveDocuments } from './user-query-retriever';
 import { v4 as uuidv4 } from 'uuid';
 import { z } from 'zod';
 

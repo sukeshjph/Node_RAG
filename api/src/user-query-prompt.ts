@@ -1,5 +1,5 @@
-import { Citation, SearchHit } from './user-query-types.js';
-import { getOpenAIConfig, getRAGConfig } from './config.js';
+import { Citation, SearchHit } from './user-query-types';
+import { getOpenAIConfig, getRAGConfig } from './config';
 
 import { AzureOpenAI } from 'openai';
 

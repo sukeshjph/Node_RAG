@@ -1,8 +1,8 @@
 import { AzureKeyCredential, SearchClient } from '@azure/search-documents';
 
-import { SearchHit } from './user-query-types.js';
-import { embedQuery } from './user-query-embeddings.js';
-import { getSearchConfig } from './config.js';
+import { SearchHit } from './user-query-types';
+import { embedQuery } from './user-query-embeddings';
+import { getSearchConfig } from './config';
 
 const searchConfig = getSearchConfig();
 

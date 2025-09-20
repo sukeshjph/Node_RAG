@@ -1,5 +1,5 @@
 import { AzureOpenAI } from 'openai';
-import { getOpenAIConfig } from './config.js';
+import { getOpenAIConfig } from './config';
 
 const openAIConfig = getOpenAIConfig();
 
