@@ -1,6 +1,7 @@
 import 'dotenv/config';
 
 import { AzureKeyCredential, SearchClient } from "@azure/search-documents";
+import { RecursiveCharacterTextSplitter, TokenTextSplitter } from "langchain/text_splitter";
 import { config, validateConfig } from '../shared/config.js';
 
 import { AzureOpenAI } from "openai";
@@ -8,8 +9,8 @@ import { DirectoryLoader } from "langchain/document_loaders/fs/directory";
 // LangChain imports
 import { Document } from "@langchain/core/documents";
 // import { PDFLoader } from "langchain/document_loaders/fs/pdf";
+//import { DocxLoader } from "langchain/document_loaders/fs/docx";
 import { OpenAIEmbeddings } from "@langchain/openai";
-import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
 import { TextLoader } from "langchain/document_loaders/fs/text";
 import { fileURLToPath } from "url";
 import fs from "fs";
@@ -23,14 +24,29 @@ interface IndexedDoc {
     content: string;
     contentVector: number[];
     chatVector: number[];
-    source?: string;
-    metadata?: Record<string, any>;
+    productVector?: number[];
+    filename: string;
+    category: string;
+    createdUtc: string;
+    metadata: string; // JSON string containing all metadata
 }
 
 // ======================
 // 2. Setup Clients
 // ======================
-validateConfig();
+try {
+    validateConfig();
+} catch (error: any) {
+    console.error("❌ Configuration error:", error.message || "Unknown error");
+    console.log("💡 Make sure you have all required environment variables set:");
+    console.log("   - AZURE_SEARCH_ENDPOINT");
+    console.log("   - AZURE_SEARCH_KEY");
+    console.log("   - AZURE_SEARCH_ALIAS");
+    console.log("   - AZURE_OPENAI_ENDPOINT");
+    console.log("   - AZURE_OPENAI_API_KEY");
+    console.log("   - AZURE_OPENAI_DEPLOYMENT_NAME");
+    process.exit(1);
+}
 
 const openai = new AzureOpenAI({
     endpoint: config.azure.openai.endpoint,
@@ -41,15 +57,40 @@ const openai = new AzureOpenAI({
 
 const searchClient = new SearchClient<IndexedDoc>(
     config.azure.search.endpoint,
-    config.azure.search.index,
+    config.azure.search.alias,
     new AzureKeyCredential(config.azure.search.key)
 );
 
-// LangChain embeddings client
-const embeddings = new OpenAIEmbeddings({
+// LangChain embeddings clients for different vector types
+const contentEmbeddings = new OpenAIEmbeddings({
+    modelName: "text-embedding-3-large", // 3072 dimensions
     openAIApiKey: config.azure.openai.apiKey,
     configuration: {
         baseURL: `${config.azure.openai.endpoint}/openai/deployments/${config.azure.openai.deployment}`,
+        defaultQuery: { "api-version": config.azure.openai.apiVersion },
+        defaultHeaders: {
+            "api-key": config.azure.openai.apiKey,
+        },
+    },
+});
+
+const chatEmbeddings = new OpenAIEmbeddings({
+    modelName: "text-embedding-3-large", // 3072 dimensions - optimized for chat
+    openAIApiKey: config.azure.openai.apiKey,
+    configuration: {
+        baseURL: `${config.azure.openai.endpoint}/openai/deployments/${config.azure.openai.deployment}`,
+        defaultQuery: { "api-version": config.azure.openai.apiVersion },
+        defaultHeaders: {
+            "api-key": config.azure.openai.apiKey,
+        },
+    },
+});
+
+const productEmbeddings = new OpenAIEmbeddings({
+    modelName: "text-embedding-3-small", // 1536 dimensions - faster for product search
+    openAIApiKey: config.azure.openai.apiKey,
+    configuration: {
+        baseURL: `${config.azure.openai.endpoint}/openai/deployments/text-embedding-3-small`,
         defaultQuery: { "api-version": config.azure.openai.apiVersion },
         defaultHeaders: {
             "api-key": config.azure.openai.apiKey,
@@ -65,7 +106,7 @@ function createDirectoryLoader(directoryPath: string) {
         ".txt": (path) => new TextLoader(path),
         // ".pdf": (path) => new PDFLoader(path), // Commented out due to import issues
         // Add more loaders as needed
-        // ".docx": (path) => new DocxLoader(path),
+        //".docx": (path) => new DocxLoader(path),
         // ".md": (path) => new TextLoader(path),
     });
 }
@@ -79,6 +120,13 @@ const textSplitter = new RecursiveCharacterTextSplitter({
     separators: ["\n\n", "\n", " ", ""],
 });
 
+// Token-based splitter for more accurate chunking
+const tokenSplitter = new TokenTextSplitter({
+    chunkSize: 800,
+    chunkOverlap: 100,
+    encodingName: "cl100k_base", // Valid encodings: "cl100k_base" (GPT-4, text-embedding-3-large), "gpt2", "p50k_base" (Codex)
+});
+
 // ======================
 // 5. Safe ID Generation
 // ======================
@@ -90,15 +138,16 @@ function safeId(source: string, chunkIndex: number): string {
 // ======================
 // 6. Embedding Generation
 // ======================
-async function generateEmbeddings(content: string): Promise<{ contentVector: number[], chatVector: number[] }> {
-    // For now, using the same embedding for both
-    // In practice, you might want different processing for chat vs content
-    const contentEmbedding = await embeddings.embedQuery(content);
-    const chatEmbedding = await embeddings.embedQuery(content);
+async function generateEmbeddings(content: string): Promise<{ contentVector: number[], chatVector: number[], productVector: number[] }> {
+    // Generate embeddings using different models for different purposes
+    const contentEmbedding = await contentEmbeddings.embedQuery(content);     // text-embedding-3-large (3072 dims)
+    const chatEmbedding = await chatEmbeddings.embedQuery(content);           // text-embedding-3-large (3072 dims)
+    const productEmbedding = await productEmbeddings.embedQuery(content);     // text-embedding-ada-002 (1536 dims)
 
     return {
         contentVector: contentEmbedding,
-        chatVector: chatEmbedding
+        chatVector: chatEmbedding,
+        productVector: productEmbedding
     };
 }
 
@@ -114,9 +163,33 @@ async function ingestDirectory(directoryPath: string): Promise<void> {
 
     console.log(`📄 Loaded ${documents.length} documents`);
 
-    // Split documents into chunks
-    const splitDocs = await textSplitter.splitDocuments(documents);
-    console.log(`✂️ Split into ${splitDocs.length} chunks`);
+    // Split documents into chunks using token-based chunking with document boundaries
+    const splitDocs: Document[] = [];
+    let globalChunkIndex = 0;
+
+    for (let docIndex = 0; docIndex < documents.length; docIndex++) {
+        const doc = documents[docIndex];
+        const tokenChunks = await tokenSplitter.splitText(doc.pageContent);
+        console.log(`📊 Document ${docIndex + 1}/${documents.length} "${doc.metadata.source}" split into ${tokenChunks.length} chunks`);
+
+        for (let chunkIndex = 0; chunkIndex < tokenChunks.length; chunkIndex++) {
+            splitDocs.push(new Document({
+                pageContent: tokenChunks[chunkIndex],
+                metadata: {
+                    ...doc.metadata,
+                    documentIndex: docIndex,           // Which original document (0, 1, 2...)
+                    chunkIndex: chunkIndex,            // Chunk within this document (0, 1, 2...)
+                    totalChunks: tokenChunks.length,   // Total chunks in this document
+                    globalChunkIndex: globalChunkIndex, // Global chunk index across all documents
+                    isFirstChunk: chunkIndex === 0,    // Is this the first chunk of the document?
+                    isLastChunk: chunkIndex === tokenChunks.length - 1 // Is this the last chunk?
+                }
+            }));
+            globalChunkIndex++;
+        }
+    }
+
+    console.log(`✂️ Split into ${splitDocs.length} token-based chunks across ${documents.length} documents`);
 
     // Process chunks and create embeddings
     const docs: IndexedDoc[] = [];
@@ -126,16 +199,36 @@ async function ingestDirectory(directoryPath: string): Promise<void> {
 
         try {
             // Generate embeddings using LangChain
-            const { contentVector, chatVector } = await generateEmbeddings(doc.pageContent);
+            const { contentVector, chatVector, productVector } = await generateEmbeddings(doc.pageContent);
+
+            // Extract metadata from document
+            const sourcePath = doc.metadata.source || `doc-${i}`;
+            const filename = path.basename(sourcePath);
+            const category = doc.metadata.category || 'general';
+            const createdUtc = new Date().toISOString();
 
             docs.push({
-                id: safeId(doc.metadata.source || `doc-${i}`, i),
+                id: safeId(sourcePath, i),
                 content: doc.pageContent,
                 contentVector,
                 chatVector,
+                productVector,
+                filename,
+                category,
+                createdUtc,
+                metadata: JSON.stringify({
+                    ...doc.metadata,
+                    documentIndex: doc.metadata.documentIndex,
+                    chunkIndex: doc.metadata.chunkIndex,
+                    totalChunks: doc.metadata.totalChunks,
+                    globalChunkIndex: doc.metadata.globalChunkIndex,
+                    isFirstChunk: doc.metadata.isFirstChunk,
+                    isLastChunk: doc.metadata.isLastChunk,
+                    source: sourcePath
+                })
             });
 
-            console.log(`✅ Processed chunk ${i + 1}/${splitDocs.length}`);
+            console.log(`✅ Processed chunk ${i + 1}/${splitDocs.length} (Document ${doc.metadata.documentIndex + 1}, Chunk ${doc.metadata.chunkIndex + 1}/${doc.metadata.totalChunks})`);
 
         } catch (error) {
             console.error(`❌ Error processing chunk ${i + 1}:`, error);
@@ -168,9 +261,27 @@ async function ingestFile(filePath: string): Promise<void> {
     documents = await loader.load();
     // }
 
-    // Split documents
-    const splitDocs = await textSplitter.splitDocuments(documents);
-    console.log(`✂️ Split into ${splitDocs.length} chunks`);
+    // Split documents using token-based chunking with document boundaries
+    const splitDocs: Document[] = [];
+    const tokenChunks = await tokenSplitter.splitText(documents[0].pageContent);
+    console.log(`📊 File "${filePath}" split into ${tokenChunks.length} chunks`);
+
+    for (let chunkIndex = 0; chunkIndex < tokenChunks.length; chunkIndex++) {
+        splitDocs.push(new Document({
+            pageContent: tokenChunks[chunkIndex],
+            metadata: {
+                ...documents[0].metadata,
+                documentIndex: 0,                      // Single document = index 0
+                chunkIndex: chunkIndex,                // Chunk within this document (0, 1, 2...)
+                totalChunks: tokenChunks.length,       // Total chunks in this document
+                globalChunkIndex: chunkIndex,          // Same as chunkIndex for single file
+                isFirstChunk: chunkIndex === 0,        // Is this the first chunk?
+                isLastChunk: chunkIndex === tokenChunks.length - 1 // Is this the last chunk?
+            }
+        }));
+    }
+
+    console.log(`✂️ Split into ${splitDocs.length} token-based chunks`);
 
     // Process and upload
     const docs: IndexedDoc[] = [];
@@ -179,14 +290,35 @@ async function ingestFile(filePath: string): Promise<void> {
         const doc = splitDocs[i];
 
         try {
-            const { contentVector, chatVector } = await generateEmbeddings(doc.pageContent);
+            const { contentVector, chatVector, productVector } = await generateEmbeddings(doc.pageContent);
+
+            // Extract metadata from file path
+            const filename = path.basename(filePath);
+            const category = doc.metadata.category || 'general';
+            const createdUtc = new Date().toISOString();
 
             docs.push({
                 id: safeId(filePath, i),
                 content: doc.pageContent,
                 contentVector,
                 chatVector,
+                productVector,
+                filename,
+                category,
+                createdUtc,
+                metadata: JSON.stringify({
+                    ...doc.metadata,
+                    documentIndex: doc.metadata.documentIndex,
+                    chunkIndex: doc.metadata.chunkIndex,
+                    totalChunks: doc.metadata.totalChunks,
+                    globalChunkIndex: doc.metadata.globalChunkIndex,
+                    isFirstChunk: doc.metadata.isFirstChunk,
+                    isLastChunk: doc.metadata.isLastChunk,
+                    source: filePath
+                })
             });
+
+            console.log(`✅ Processed chunk ${i + 1}/${splitDocs.length} (Chunk ${doc.metadata.chunkIndex + 1}/${doc.metadata.totalChunks})`);
 
         } catch (error) {
             console.error(`❌ Error processing chunk ${i + 1}:`, error);
@@ -204,6 +336,8 @@ async function ingestFile(filePath: string): Promise<void> {
 // ======================
 (async () => {
     try {
+        console.log("🚀 Starting LangChain ingestion pipeline...");
+
         const __filename = fileURLToPath(import.meta.url);
         const __dirname = path.dirname(__filename);
 
@@ -211,15 +345,18 @@ async function ingestFile(filePath: string): Promise<void> {
         const sampleDir = path.join(__dirname, "sample-docs");
         if (!fs.existsSync(sampleDir)) {
             fs.mkdirSync(sampleDir, { recursive: true });
-
-            // Copy sample.txt to the new directory
-            // const sampleFile = path.join(__dirname, "sample.txt");
-            // if (fs.existsSync(sampleFile)) {
-            //     fs.copyFileSync(sampleFile, path.join(sampleDir, "sample.txt"));
-            // }
+            console.log(`📁 Created sample directory: ${sampleDir}`);
         }
 
-        console.log("🚀 Starting LangChain ingestion pipeline...");
+        // Check if directory has any files
+        const files = fs.readdirSync(sampleDir);
+        if (files.length === 0) {
+            console.log("⚠️ No files found in sample-docs directory");
+            console.log("💡 Add some .txt or .docx files to the sample-docs directory to test ingestion");
+            return;
+        }
+
+        console.log(`📄 Found ${files.length} files in sample directory`);
 
         // Ingest the sample directory
         await ingestDirectory(sampleDir);
@@ -228,6 +365,10 @@ async function ingestFile(filePath: string): Promise<void> {
 
     } catch (error) {
         console.error("❌ Error in LangChain ingestion:", error);
+        if (error instanceof Error) {
+            console.error("Error details:", error.message);
+            console.error("Stack trace:", error.stack);
+        }
         process.exit(1);
     }
 })();

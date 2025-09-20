@@ -16,6 +16,11 @@ interface IndexedDoc {
     id: string;
     content: string;
     contentVector: number[];
+    chatVector: number[];
+    productVector?: number[];
+    filename: string;
+    category: string;
+    createdUtc: string;
 }
 
 // ======================
@@ -32,7 +37,7 @@ const openai = new AzureOpenAI({
 
 const searchClient = new SearchClient<IndexedDoc>(
     config.azure.search.endpoint,
-    config.azure.search.index,
+    config.azure.search.alias,
     new AzureKeyCredential(config.azure.search.key)
 );
 
@@ -55,12 +60,27 @@ function chunkText(text: string, maxTokens = 800, overlap = 100): string[] {
 // ======================
 // 4. Embedding Generator
 // ======================
-async function embed(text: string): Promise<number[]> {
-    const resp = await openai.embeddings.create({
+async function generateEmbeddings(text: string): Promise<{ contentVector: number[], chatVector: number[], productVector: number[] }> {
+    const contentResp = await openai.embeddings.create({
         model: "text-embedding-3-large",
         input: text
     });
-    return resp.data[0].embedding as number[];
+
+    const chatResp = await openai.embeddings.create({
+        model: "text-embedding-3-large",
+        input: text
+    });
+
+    const productResp = await openai.embeddings.create({
+        model: "text-embedding-3-large",
+        input: text
+    });
+
+    return {
+        contentVector: contentResp.data[0].embedding as number[],
+        chatVector: chatResp.data[0].embedding as number[],
+        productVector: productResp.data[0].embedding as number[]
+    };
 }
 
 
@@ -79,11 +99,21 @@ async function ingestFile(filePath: string): Promise<void> {
 
     let docs: IndexedDoc[] = [];
     for (let i = 0; i < chunks.length; i++) {
-        const vector = await embed(chunks[i]);
+        const { contentVector, chatVector, productVector } = await generateEmbeddings(chunks[i]);
+
+        const filename = path.basename(filePath);
+        const category = 'general';
+        const createdUtc = new Date().toISOString();
+
         docs.push({
             id: safeId(filePath, i),
             content: chunks[i],
-            contentVector: vector,
+            contentVector,
+            chatVector,
+            productVector,
+            filename,
+            category,
+            createdUtc,
         });
     }
 

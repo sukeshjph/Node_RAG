@@ -26,14 +26,14 @@ const openai = new AzureOpenAI({
 
 async function embedQuery(text: string): Promise<number[]> {
     const result = await openai.embeddings.create({
-        model: "text-embedding-3-large",
+        model: "text-embedding-3-small",
         input: text
     });
     return result.data[0].embedding;
 }
 
 async function main() {
-    const queryText = "The Games budget was estimated at USD 8.7 billion with cost overruns of 115%";
+    const queryText = "Assets under management increased by £2.3 billion";
     const queryVector = await embedQuery(queryText);
 
     const vectorQuery = {
