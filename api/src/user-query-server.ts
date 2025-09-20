@@ -1,23 +1,26 @@
+import { config } from './config.js';
 import express from 'express';
 import pino from 'pino';
+import { processRAGQuery } from './user-query-prompt.js';
+import { retrieveDocuments } from './user-query-retriever.js';
 import { v4 as uuidv4 } from 'uuid';
 import { z } from 'zod';
 
-import { processRAGQuery } from './prompt.js';
-import { retrieveDocuments } from './retrieve.js';
-import { config } from './config.js';
-
-const logger = pino({
-    level: config.NODE_ENV === 'development' ? 'debug' : 'info',
-    transport: config.NODE_ENV === 'development' ? {
-        target: 'pino-pretty',
-        options: { colorize: true }
-    } : undefined,
-});
+const logger = pino(
+    config.NODE_ENV === 'development' ? {
+        level: 'debug',
+        transport: {
+            target: 'pino-pretty',
+            options: { colorize: true }
+        }
+    } : {
+        level: 'info'
+    }
+);
 
 const querySchema = z.object({
-    q: z.string().min(1).max(1000),
-    k: z.number().int().min(1).max(20).optional().default(6),
+    question: z.string().min(1).max(1000),
+    maxResults: z.number().int().min(1).max(20).optional().default(6),
     includeText: z.boolean().optional().default(false),
 });
 
@@ -30,15 +33,19 @@ app.use((req, res, next) => {
     next();
 });
 
+app.get('/health', (_req, res) => {
+    res.json({ status: 'healthy', timestamp: new Date().toISOString() });
+});
+
 app.post('/query', async (req, res) => {
     const requestId = req.headers['x-request-id'] as string;
 
     try {
-        const { q, k, includeText } = querySchema.parse(req.body);
+        const { question, maxResults, includeText } = querySchema.parse(req.body);
 
-        logger.info({ requestId, query: q.substring(0, 100) }, 'Processing query');
+        logger.info({ requestId, query: question.substring(0, 100) }, 'Processing query');
 
-        const documents = await retrieveDocuments(q, { k });
+        const documents = await retrieveDocuments(question, { k: maxResults });
 
         if (documents.length === 0) {
             return res.status(404).json({
@@ -47,11 +54,11 @@ app.post('/query', async (req, res) => {
             });
         }
 
-        const { answer, citations } = await processRAGQuery(q, documents, includeText);
+        const { answer, citations } = await processRAGQuery(question, documents, includeText);
 
         logger.info({ requestId, answerLength: answer.length, citationCount: citations.length }, 'Query completed');
 
-        res.json({ answer, citations, requestId });
+        return res.json({ answer, citations, requestId });
 
     } catch (error) {
         logger.error({ requestId, error: error instanceof Error ? error.message : 'Unknown error' }, 'Query failed');
@@ -64,15 +71,11 @@ app.post('/query', async (req, res) => {
             });
         }
 
-        res.status(500).json({
+        return res.status(500).json({
             error: 'Internal server error',
             requestId
         });
     }
-});
-
-app.get('/health', (req, res) => {
-    res.json({ status: 'healthy', timestamp: new Date().toISOString() });
 });
 
 const port = config.PORT;

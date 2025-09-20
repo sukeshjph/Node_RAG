@@ -1,7 +1,8 @@
 import { AzureKeyCredential, SearchClient } from '@azure/search-documents';
-import { SearchHit } from './types.js';
+
+import { SearchHit } from './user-query-types.js';
+import { embedQuery } from './user-query-embeddings.js';
 import { getSearchConfig } from './config.js';
-import { embedQuery } from './embeddings.js';
 
 const searchConfig = getSearchConfig();
 
@@ -22,12 +23,14 @@ export async function retrieveDocuments(
 
         const searchResults = await searchClient.search(query, {
             top: k,
-            vectorQueries: [{
-                kind: 'vector',
-                fields: 'contentVector',
-                kNearestNeighborsCount: k,
-                vector: queryVector,
-            }],
+            vectorSearchOptions: {
+                queries: [{
+                    kind: 'vector',
+                    fields: ['contentVector'],
+                    kNearestNeighborsCount: k,
+                    vector: queryVector,
+                }]
+            },
             select: ['id', 'content', 'filename', 'category', 'createdUtc'],
         });
 

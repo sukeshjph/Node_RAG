@@ -1,6 +1,9 @@
 export interface SearchHit {
     id: string;
     content: string;
+    contentVector?: number[];
+    chatVector?: number[];
+    productVector?: number[];
     filename: string;
     category: string;
     createdUtc: string;
@@ -16,8 +19,8 @@ export interface Citation {
 }
 
 export interface QueryRequest {
-    q: string;
-    k?: number;
+    question: string;
+    maxResults?: number;
     includeText?: boolean;
 }
 

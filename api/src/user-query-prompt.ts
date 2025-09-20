@@ -1,5 +1,6 @@
-import { Citation, SearchHit } from './types.js';
+import { Citation, SearchHit } from './user-query-types.js';
 import { getOpenAIConfig, getRAGConfig } from './config.js';
+
 import { AzureOpenAI } from 'openai';
 
 const openAIConfig = getOpenAIConfig();
@@ -59,13 +60,18 @@ function buildUserMessage(
     context.forEach((hit, index) => {
         const citationNumber = index + 1;
         const sourceLabel = `[${citationNumber}] ${hit.filename} (${hit.id})`;
-        citations.push({
+        const citation: Citation = {
             id: hit.id,
             score: hit.score,
             filename: hit.filename,
             category: hit.category,
-            snippet: includeText ? hit.content.substring(0, 200) + '...' : undefined,
-        });
+        };
+
+        if (includeText) {
+            citation.snippet = hit.content.substring(0, 200) + '...';
+        }
+
+        citations.push(citation);
         contextSection += `${sourceLabel}\n`;
         if (includeText) {
             contextSection += `${hit.content}\n\n`;
@@ -75,7 +81,8 @@ function buildUserMessage(
         }
     });
 
-    const userMessage = `${contextSection}QUESTION: ${question}\n\nPlease provide a comprehensive answer based on the context documents above. Include numbered citations [1], [2], etc. that correspond to the source documents.`;
+    const userMessage = `${contextSection}QUESTION: ${question}\n\nPlease provide a comprehensive answer based on the context documents above. 
+    Include numbered citations [1], [2], etc. that correspond to the source documents.`;
 
     return {
         userMessage,

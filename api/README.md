@@ -1,6 +1,6 @@
-# Simple RAG Query Service
+# User Query Processing API
 
-A minimal Node.js TypeScript API that implements RAG (Retrieval-Augmented Generation) using Azure Cognitive Search and Azure OpenAI.
+A Node.js TypeScript API that processes user queries using RAG (Retrieval-Augmented Generation) with Azure Cognitive Search and Azure OpenAI. This API handles the user-facing query processing side of the RAG system.
 
 ## 🚀 What it does
 
@@ -14,12 +14,12 @@ A minimal Node.js TypeScript API that implements RAG (Retrieval-Augmented Genera
 ```
 api/
 ├── src/
-│   ├── server.ts          # Express server with /query endpoint
-│   ├── config.ts          # Environment configuration
-│   ├── types.ts           # TypeScript interfaces
-│   ├── embeddings.ts      # Azure OpenAI embedding service
-│   ├── retrieve.ts        # Azure Cognitive Search
-│   └── prompt.ts          # LLM prompting and response generation
+│   ├── user-query-server.ts      # Express server with /query endpoint
+│   ├── config.ts                 # Environment configuration
+│   ├── user-query-types.ts       # TypeScript interfaces
+│   ├── user-query-embeddings.ts  # Azure OpenAI embedding service
+│   ├── user-query-retriever.ts   # Azure Cognitive Search
+│   └── user-query-prompt.ts      # LLM prompting and response generation
 ├── package.json
 ├── tsconfig.json
 └── README.md
@@ -72,8 +72,8 @@ NODE_ENV=development
 **Request:**
 ```json
 {
-  "q": "What is machine learning?",
-  "k": 6,
+  "question": "What is machine learning?",
+  "maxResults": 6,
   "includeText": false
 }
 ```
