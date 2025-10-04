@@ -52,8 +52,9 @@ export async function retrieveDocuments(
         console.log(`📋 Search completed, processing results...`);
 
         const results: SearchHit[] = [];
+
         for await (const result of searchResults.results) {
-            if (result.document) {
+            if (result.document) { // No score filtering for now
                 results.push({
                     id: result.document.id,
                     content: result.document.content,
@@ -65,13 +66,14 @@ export async function retrieveDocuments(
             }
         }
 
-        console.log(`✅ Found ${results.length} documents`);
+        console.log(`✅ Found ${results.length} documents (after filtering)`);
         if (results.length > 0 && results[0]) {
-            console.log(`📄 First result:`, {
-                id: results[0].id,
-                filename: results[0].filename,
-                score: results[0].score
-            });
+            console.log(`📄 Top results:`, results.slice(0, 3).map(r => ({
+                id: r.id,
+                filename: r.filename,
+                score: r.score,
+                category: r.category
+            })));
         }
 
         return results;
