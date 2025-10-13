@@ -1,0 +1,180 @@
+###
+# Multi-Agent RAG API Test Suite
+# Use with REST Client extension in VS Code
+###
+
+@baseUrl = http://localhost:3000
+@contentType = application/json
+
+### Health Check
+GET {{baseUrl}}/health
+
+###
+# ========================================
+# 1. CLASSIFY ENDPOINT
+# Classifies question into category and complexity
+# ========================================
+POST {{baseUrl}}/api/classify
+Content-Type: {{contentType}}
+
+{
+  "question": "What is our company policy on remote work and flexible hours?"
+}
+
+###
+# ========================================
+# 2. RETRIEVE ENDPOINT
+# Fetches relevant documents from Azure Search
+# ========================================
+POST {{baseUrl}}/api/retrieve
+Content-Type: {{contentType}}
+
+{
+  "question": "What are the latest trading regulations for stock options?",
+  "maxResults": 5
+}
+
+###
+# ========================================
+# 3. SUMMARISE ENDPOINT
+# Condenses multiple documents into a summary
+# ========================================
+POST {{baseUrl}}/api/summarise
+Content-Type: {{contentType}}
+
+{
+  "question": "Explain our HR benefits package",
+  "documents": [
+    {
+      "id": "doc1",
+      "content": "Our company offers comprehensive health insurance including medical, dental, and vision coverage. Employees can choose from three different plan tiers.",
+      "filename": "benefits-guide.pdf",
+      "category": "hr",
+      "createdUtc": "2024-01-15",
+      "score": 0.95
+    },
+    {
+      "id": "doc2",
+      "content": "Retirement benefits include a 401(k) plan with 6% company match. Employees are vested after 2 years of employment.",
+      "filename": "retirement-plan.pdf",
+      "category": "hr",
+      "createdUtc": "2024-01-20",
+      "score": 0.92
+    },
+    {
+      "id": "doc3",
+      "content": "Paid time off policy: 15 days vacation, 10 sick days, and 12 company holidays per year. Additional days awarded after 5 years.",
+      "filename": "pto-policy.pdf",
+      "category": "hr",
+      "createdUtc": "2024-02-01",
+      "score": 0.89
+    }
+  ]
+}
+
+###
+# ========================================
+# 4. ANSWER ENDPOINT (with documents)
+# Generates answer from provided documents
+# ========================================
+POST {{baseUrl}}/api/answer
+Content-Type: {{contentType}}
+
+{
+  "question": "What health insurance options do we have?",
+  "includeText": true,
+  "documents": [
+    {
+      "id": "doc1",
+      "content": "Our company offers comprehensive health insurance including medical, dental, and vision coverage. Employees can choose from three different plan tiers: Bronze, Silver, and Gold. The Bronze plan has the lowest premiums but higher deductibles, while the Gold plan offers the most comprehensive coverage with lower out-of-pocket costs.",
+      "filename": "benefits-guide.pdf",
+      "category": "hr",
+      "createdUtc": "2024-01-15",
+      "score": 0.95
+    }
+  ]
+}
+
+###
+# ========================================
+# 5. ANSWER ENDPOINT (with summary)
+# Generates answer from summarized context
+# ========================================
+POST {{baseUrl}}/api/answer
+Content-Type: {{contentType}}
+
+{
+  "question": "What are our company benefits?",
+  "summarizedContext": "The company offers comprehensive benefits including health insurance (medical, dental, vision) with three plan tiers, 401(k) retirement plan with 6% match, 15 days vacation, 10 sick days, and 12 company holidays per year."
+}
+
+###
+# ========================================
+# 6. ASK ENDPOINT ⭐ (FULL ORCHESTRATION)
+# Complete RAG pipeline with all agents
+# This is the recommended endpoint for production use
+# ========================================
+POST {{baseUrl}}/api/ask
+Content-Type: {{contentType}}
+
+{
+  "question": "What is our policy on remote work and how many vacation days do employees get?",
+  "maxResults": 6,
+  "includeText": false
+}
+
+###
+# Test with complex question (should trigger summarization)
+POST {{baseUrl}}/api/ask
+Content-Type: {{contentType}}
+
+{
+  "question": "Can you explain our entire HR benefits package including health insurance, retirement plans, paid time off, and any additional perks or wellness programs?",
+  "maxResults": 15,
+  "includeText": true
+}
+
+###
+# Test HR question
+POST {{baseUrl}}/api/ask
+Content-Type: {{contentType}}
+
+{
+  "question": "How do I submit an expense report?",
+  "maxResults": 5
+}
+
+###
+# Test Trading question
+POST {{baseUrl}}/api/ask
+Content-Type: {{contentType}}
+
+{
+  "question": "What are the margin requirements for options trading?",
+  "maxResults": 5
+}
+
+###
+# Test Technical question
+POST {{baseUrl}}/api/ask
+Content-Type: {{contentType}}
+
+{
+  "question": "How do I reset my VPN password?",
+  "maxResults": 5
+}
+
+###
+# ========================================
+# 7. LEGACY ENDPOINT (Backwards Compatible)
+# Original monolithic endpoint
+# ========================================
+POST {{baseUrl}}/query
+Content-Type: {{contentType}}
+
+{
+  "question": "What is our company vacation policy?",
+  "maxResults": 6,
+  "includeText": false
+}
+
