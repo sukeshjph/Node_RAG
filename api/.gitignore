@@ -39,3 +39,7 @@ coverage/
 *.temp
 .cache/
 
+# Evaluation results
+eval/results*.log
+eval/results*.json
+

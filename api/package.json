@@ -8,7 +8,8 @@
         "dev:legacy": "ts-node-dev --respawn src/user-query-server.ts",
         "build": "tsc -p tsconfig.json",
         "start": "node dist/server.js",
-        "start:legacy": "node dist/user-query-server.js"
+        "start:legacy": "node dist/user-query-server.js",
+        "eval": "ts-node eval/index.ts"
     },
     "keywords": [
         "user-query-processing",
@@ -39,6 +40,7 @@
         "@types/express": "^4.17.21",
         "@types/node": "^20.10.0",
         "@types/uuid": "^9.0.7",
+        "ts-node": "^10.9.2",
         "ts-node-dev": "^2.0.0",
         "typescript": "^5.3.0"
     },

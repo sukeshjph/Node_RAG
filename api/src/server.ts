@@ -13,27 +13,19 @@
  */
 
 // Import types
-import {
-    AnswerRequest,
-    AskRequest,
-    ClassifyRequest,
-    RetrieveRequest,
-    SummariseRequest
-} from './types/agent-types';
 
 // Import agents
 import { classifyQuestion } from './agents/classifier';
 import { config } from './config';
 // Import orchestrator (use simple version until langgraph is installed)
-// import { executeRAGPipeline } from './orchestrator';  // LangGraph version (requires npm install)
+// import { executeRAGPipeline } from './orchestrator-langgraph';  // LangGraph version (requires npm install)
 import { executeRAGPipeline } from './orchestrator-simple';
 import express from 'express';
 import { generateAnswer } from './agents/answerer';
-import { retrieveDocuments as legacyRetrieve } from './user-query-retriever';
 import { logger } from './utils/logger';
 // Legacy imports for backwards compatibility
-import { processRAGQuery } from './user-query-prompt';
 import { retrieveDocuments } from './agents/retriever';
+import { setupLegacyRoutes } from './legacy-routes';
 import { summarizeDocuments } from './agents/summariser';
 import { v4 as uuidv4 } from 'uuid';
 import { z } from 'zod';
@@ -73,12 +65,6 @@ const askSchema = z.object({
     includeText: z.boolean().optional().default(false),
 });
 
-// Legacy schema
-const querySchema = z.object({
-    question: z.string().min(1).max(1000),
-    maxResults: z.number().int().min(1).max(20).optional().default(6),
-    includeText: z.boolean().optional().default(false),
-});
 
 // ========================================
 // Express App Setup
@@ -251,10 +237,11 @@ app.post('/api/answer', async (req, res) => {
 
         logger.info({ requestId, endpoint: '/api/answer' }, 'Answer request');
 
-        const result = await generateAnswer(
-            { question, documents, summarizedContext, includeText },
-            requestId
-        );
+        const answerInput: any = { question, includeText };
+        if (documents) answerInput.documents = documents;
+        if (summarizedContext) answerInput.summarizedContext = summarizedContext;
+
+        const result = await generateAnswer(answerInput, requestId);
 
         return res.json({
             answer: result.answer,
@@ -325,73 +312,11 @@ app.post('/api/ask', async (req, res) => {
 });
 
 // ========================================
-// Legacy Endpoint (Backwards Compatibility)
+// Legacy Routes (Backwards Compatibility)
 // ========================================
 
-/**
- * POST /query
- * Legacy monolithic endpoint - maintained for backwards compatibility
- */
-app.post('/query', async (req, res) => {
-    const requestId = req.headers['x-request-id'] as string;
-
-    try {
-        const { question, maxResults, includeText } = querySchema.parse(req.body);
-
-        logger.info({ requestId, endpoint: '/query (legacy)', query: question.substring(0, 100) }, 'Legacy query request');
-
-        const { results: documents, metrics } = await legacyRetrieve(question, { k: maxResults });
-
-        if (documents.length === 0) {
-            return res.status(404).json({
-                error: 'No relevant documents found',
-                requestId
-            });
-        }
-
-        const promptStartTime = Date.now();
-        const { answer, citations } = await processRAGQuery(question, documents, includeText);
-        const promptTimeMs = Date.now() - promptStartTime;
-
-        metrics.promptTimeMs = promptTimeMs;
-        metrics.totalTimeMs = Date.now() - Date.now() + metrics.totalTimeMs + promptTimeMs;
-
-        logger.info({
-            requestId,
-            answerLength: answer.length,
-            citationCount: citations.length,
-            metrics
-        }, 'Legacy query completed');
-
-        return res.json({
-            answer,
-            citations,
-            requestId,
-            metrics: {
-                retrievalTimeMs: metrics.retrievalTimeMs,
-                reRankingTimeMs: metrics.reRankingTimeMs,
-                promptTimeMs: metrics.promptTimeMs,
-                totalTimeMs: metrics.totalTimeMs
-            }
-        });
-
-    } catch (error) {
-        logger.error({ requestId, error: error instanceof Error ? error.message : 'Unknown error' }, 'Legacy query failed');
-
-        if (error instanceof z.ZodError) {
-            return res.status(400).json({
-                error: 'Invalid request',
-                details: error.errors,
-                requestId
-            });
-        }
-
-        return res.status(500).json({
-            error: 'Internal server error',
-            requestId
-        });
-    }
-});
+// Setup legacy routes for backward compatibility
+setupLegacyRoutes(app);
 
 // ========================================
 // Start Server

@@ -10,8 +10,7 @@
 
 import {
     OrchestratorConfig,
-    OrchestratorResult,
-    QuestionComplexity
+    OrchestratorResult
 } from './types/agent-types';
 import { needsSummarization, summarizeDocuments } from './agents/summariser';
 
@@ -24,13 +23,15 @@ import { retrieveDocuments } from './agents/retriever';
  * Simple sequential orchestrator without LangGraph dependency
  */
 export class SimpleRAGOrchestrator {
-    private config: OrchestratorConfig;
+    private config: OrchestratorConfig; // Configuration for future use
 
-    constructor(config: OrchestratorConfig = {}) {
+    constructor(_config: OrchestratorConfig = {}) {
+        // Configuration stored but not used in simple orchestrator
+        // Future: Could use config for timeout, retries, etc.
         this.config = {
-            maxRetries: config.maxRetries ?? 2,
-            timeoutMs: config.timeoutMs ?? 30000,
-            enableLogging: config.enableLogging ?? true,
+            maxRetries: _config.maxRetries ?? 2,
+            timeoutMs: _config.timeoutMs ?? 30000,
+            enableLogging: _config.enableLogging ?? true,
         };
     }
 
@@ -98,16 +99,18 @@ export class SimpleRAGOrchestrator {
 
             // Step 5: Generate answer
             logOrchestrator(requestId, 'Step 5: Generating answer');
-            const answer = await generateAnswer(
-                {
-                    question,
-                    documents: summarizedContext ? undefined : retrieval.documents,
-                    summarizedContext,
-                    includeText: options.includeText,
-                    category: classification.category,
-                },
-                requestId
-            );
+            const answerInput: any = {
+                question,
+                includeText: options.includeText,
+                category: classification.category
+            };
+            if (summarizedContext) {
+                answerInput.summarizedContext = summarizedContext;
+            } else {
+                answerInput.documents = retrieval.documents;
+            }
+
+            const answer = await generateAnswer(answerInput, requestId);
 
             const totalTimeMs = Date.now() - startTime;
 
@@ -123,8 +126,8 @@ export class SimpleRAGOrchestrator {
                     metrics: {
                         classificationTimeMs: classification.timeMs,
                         retrievalTimeMs: retrieval.metrics.retrievalTimeMs,
-                        reRankingTimeMs: retrieval.metrics.reRankingTimeMs,
-                        summarizationTimeMs,
+                        ...(retrieval.metrics.reRankingTimeMs !== undefined && { reRankingTimeMs: retrieval.metrics.reRankingTimeMs }),
+                        ...(summarizationTimeMs !== undefined && { summarizationTimeMs }),
                         answerTimeMs: answer.timeMs,
                         totalTimeMs,
                     },
