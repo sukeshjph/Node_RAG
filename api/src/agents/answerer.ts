@@ -45,8 +45,10 @@ export async function generateAnswer(
         const { question, documents, summarizedContext, includeText, category } = input;
 
         // Build grounded prompt based on what context we have
+        // Default includeText to true to ensure answerer gets document content
+        const shouldIncludeText = includeText !== false;
         const { systemMessage, userMessage, citations } = documents
-            ? buildGroundedPromptFromDocs(question, documents, includeText, category)
+            ? buildGroundedPromptFromDocs(question, documents, shouldIncludeText, category)
             : buildGroundedPromptFromSummary(question, summarizedContext!, category);
 
         // Generate answer

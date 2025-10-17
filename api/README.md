@@ -381,6 +381,22 @@ npm install langgraph
 - Monitoring and observability
 - Extending with more agents
 
+### Switching Orchestrators
+
+You can switch between orchestrators using the `ORCHESTRATOR_TYPE` environment variable:
+
+**Simple Orchestrator (Default):**
+```env
+ORCHESTRATOR_TYPE=simple
+```
+
+**LangGraph Orchestrator:**
+```env
+ORCHESTRATOR_TYPE=langgraph
+```
+
+**Note**: LangGraph orchestrator requires `npm install langgraph`. If not installed, the system will automatically fallback to the simple orchestrator.
+
 ## 📁 Project Structure
 
 ```
@@ -433,6 +449,7 @@ api/
 | `AZURE_AI_RERANKER_KEY` | ReRanker API key | ❌ |
 | `PORT` | Server port (default: 3000) | ❌ |
 | `NODE_ENV` | Environment (development/production) | ❌ |
+| `ORCHESTRATOR_TYPE` | Orchestrator type: `simple` or `langgraph` (default: simple) | ❌ |
 
 ## 🔧 Scripts
 

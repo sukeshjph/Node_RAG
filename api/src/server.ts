@@ -17,11 +17,10 @@
 // Import agents
 import { classifyQuestion } from './agents/classifier';
 import { config } from './config';
-// Import orchestrator (use simple version until langgraph is installed)
-// import { executeRAGPipeline } from './orchestrator-langgraph';  // LangGraph version (requires npm install)
-import { executeRAGPipeline } from './orchestrator-simple';
 import express from 'express';
 import { generateAnswer } from './agents/answerer';
+// Import orchestrator dynamically based on config
+import { getOrchestratorConfig } from './config';
 import { logger } from './utils/logger';
 // Legacy imports for backwards compatibility
 import { retrieveDocuments } from './agents/retriever';
@@ -30,7 +29,28 @@ import { summarizeDocuments } from './agents/summariser';
 import { v4 as uuidv4 } from 'uuid';
 import { z } from 'zod';
 
-// Simple version (no extra deps)
+// Dynamic orchestrator loading based on config
+const orchestratorConfig = getOrchestratorConfig();
+let executeRAGPipeline: any;
+
+try {
+    if (orchestratorConfig.type === 'langgraph') {
+        // Try to import LangGraph orchestrator
+        const langgraphModule = require('./orchestrator-langgraph');
+        executeRAGPipeline = langgraphModule.executeRAGPipeline;
+        console.log('🎭 Using LangGraph orchestrator');
+    } else {
+        // Use simple orchestrator (default)
+        const simpleModule = require('./orchestrator-simple');
+        executeRAGPipeline = simpleModule.executeRAGPipeline;
+        console.log('🎭 Using Simple orchestrator');
+    }
+} catch (error) {
+    // Fallback to simple orchestrator if LangGraph fails
+    const simpleModule = require('./orchestrator-simple');
+    executeRAGPipeline = simpleModule.executeRAGPipeline;
+    console.log('🎭 Fallback to Simple orchestrator (LangGraph not available)');
+}
 
 
 
@@ -324,8 +344,9 @@ setupLegacyRoutes(app);
 
 const port = config.PORT;
 app.listen(port, () => {
-    logger.info({ port }, 'Multi-Agent RAG Server started');
+    logger.info({ port, orchestratorType: orchestratorConfig.type }, 'Multi-Agent RAG Server started');
     console.log(`\n🚀 Multi-Agent RAG API running on port ${port}`);
+    console.log(`🎭 Orchestrator: ${orchestratorConfig.type.toUpperCase()}`);
     console.log(`\n📊 Health: http://localhost:${port}/health`);
     console.log(`\n🤖 New Modular Endpoints:`);
     console.log(`   POST http://localhost:${port}/api/classify`);

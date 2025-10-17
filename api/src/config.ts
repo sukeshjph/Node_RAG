@@ -15,10 +15,11 @@ const configSchema = z.object({
     SYSTEM_PROMPT: z.string().default('You are a helpful assistant. Answer based on the provided context and cite sources.'),
     PORT: z.coerce.number().int().min(1).max(65535).default(3000),
     NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
-    USE_RERANKER: z.coerce.boolean().default(false),
+    USE_RERANKER: z.coerce.boolean().default(false), // Disabled - using Cognitive Search built-in reranking
     AZURE_AI_RERANKER_ENDPOINT: z.string().url().optional(),
     AZURE_AI_RERANKER_KEY: z.string().min(1).optional(),
     RERANKER_MODEL: z.string().default('microsoft-reranker-v1'),
+    ORCHESTRATOR_TYPE: z.enum(['simple', 'langgraph']).default('simple'),
 });
 
 export type Config = z.infer<typeof configSchema>;
@@ -51,4 +52,8 @@ export const getReRankerConfig = () => ({
     endpoint: config.AZURE_AI_RERANKER_ENDPOINT,
     key: config.AZURE_AI_RERANKER_KEY,
     apiVersion: "2024-05-15-preview"
+});
+
+export const getOrchestratorConfig = () => ({
+    type: config.ORCHESTRATOR_TYPE,
 });

@@ -1,0 +1,336 @@
+name: RAG Query Service Smoke Tests
+description: Comprehensive smoke tests for the RAG Query Service endpoints
+version: 1.0.0
+
+variables:
+  baseUrl: http://localhost:3000
+  contentType: application/json
+
+environment:
+  development:
+    baseUrl: http://localhost:3000
+    timeout: 30000
+  production:
+    baseUrl: https://your-api.azurewebsites.net
+    timeout: 60000
+
+# ========================================
+# Health Check Tests
+# ========================================
+
+test: Basic Health Check
+method: GET
+url: {{baseUrl}}/health
+expect:
+  status: 200
+  headers:
+    content-type: application/json
+  body:
+    status: healthy
+    timestamp: string
+    version: string
+
+test: Detailed Health Check
+method: GET
+url: {{baseUrl}}/health/detailed
+expect:
+  status: 200
+  body:
+    status: healthy
+    services: object
+
+test: Service Information
+method: GET
+url: {{baseUrl}}/info
+expect:
+  status: 200
+  body:
+    name: string
+    version: string
+    description: string
+
+# ========================================
+# RAG Query Tests
+# ========================================
+
+test: Basic Query - Simple Question
+method: POST
+url: {{baseUrl}}/query
+headers:
+  Content-Type: {{contentType}}
+body:
+  q: "What is machine learning?"
+expect:
+  status: 200
+  body:
+    answer: string
+    citations: array
+    requestId: string
+    metrics: object
+
+test: Query with Filters - Filter by Category
+method: POST
+url: {{baseUrl}}/query
+headers:
+  Content-Type: {{contentType}}
+body:
+  q: "How does neural networks work?"
+  filters:
+    category: "ingested"
+expect:
+  status: 200
+  body:
+    answer: string
+    citations: array
+
+test: Query with Custom Parameters
+method: POST
+url: {{baseUrl}}/query
+headers:
+  Content-Type: {{contentType}}
+body:
+  q: "What are the benefits of artificial intelligence?"
+  k: 5
+  knn: 3
+  includeText: true
+expect:
+  status: 200
+  body:
+    answer: string
+    citations: array
+    metrics:
+      retrievalTimeMs: number
+
+test: Query with Multiple Filters
+method: POST
+url: {{baseUrl}}/query
+headers:
+  Content-Type: {{contentType}}
+body:
+  q: "Explain deep learning algorithms"
+  filters:
+    category: "research"
+    filename: "ai-paper.txt"
+  k: 10
+  includeText: true
+expect:
+  status: 200
+  body:
+    answer: string
+    citations: array
+
+test: Query with Vector Field Override
+method: POST
+url: {{baseUrl}}/query
+headers:
+  Content-Type: {{contentType}}
+body:
+  q: "What is natural language processing?"
+  vectorField: "contentVector"
+  k: 8
+  knn: 6
+expect:
+  status: 200
+  body:
+    answer: string
+    citations: array
+
+# ========================================
+# Error Handling Tests
+# ========================================
+
+test: Empty Query - Validation Error
+method: POST
+url: {{baseUrl}}/query
+headers:
+  Content-Type: {{contentType}}
+body:
+  q: ""
+expect:
+  status: 400
+  body:
+    error: string
+
+test: Missing Query - Validation Error
+method: POST
+url: {{baseUrl}}/query
+headers:
+  Content-Type: {{contentType}}
+body:
+  filters:
+    category: "test"
+expect:
+  status: 400
+  body:
+    error: string
+
+test: Invalid Query Length - Validation Error
+method: POST
+url: {{baseUrl}}/query
+headers:
+  Content-Type: {{contentType}}
+body:
+  q: "This is a very long query that exceeds the maximum allowed length of 1000 characters. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum. Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo. Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt. Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet, consectetur, adipisci velit, sed quia non numquam eius modi tempora incididunt ut labore et dolore magnam aliquam quaerat voluptatem. Ut enim ad minima veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."
+expect:
+  status: 400
+  body:
+    error: string
+
+test: Invalid K Parameter - Validation Error
+method: POST
+url: {{baseUrl}}/query
+headers:
+  Content-Type: {{contentType}}
+body:
+  q: "What is AI?"
+  k: 150
+expect:
+  status: 400
+  body:
+    error: string
+
+test: Invalid Vector Field - Validation Error
+method: POST
+url: {{baseUrl}}/query
+headers:
+  Content-Type: {{contentType}}
+body:
+  q: "What is AI?"
+  vectorField: ""
+expect:
+  status: 400
+  body:
+    error: string
+
+# ========================================
+# Performance Tests
+# ========================================
+
+test: Complex Query - Technical Question
+method: POST
+url: {{baseUrl}}/query
+headers:
+  Content-Type: {{contentType}}
+body:
+  q: "Explain the differences between supervised and unsupervised machine learning, including examples of algorithms and use cases for each approach."
+  k: 12
+  knn: 8
+  includeText: true
+timeout: 30000
+expect:
+  status: 200
+  body:
+    answer: string
+    citations: array
+
+test: Multi-topic Query
+method: POST
+url: {{baseUrl}}/query
+headers:
+  Content-Type: {{contentType}}
+body:
+  q: "Compare and contrast artificial intelligence, machine learning, and deep learning. What are the key differences and how do they relate to each other?"
+  filters:
+    category: "ingested"
+  k: 15
+  includeText: true
+timeout: 30000
+expect:
+  status: 200
+  body:
+    answer: string
+    citations: array
+
+test: Technical Query - Specific Terms
+method: POST
+url: {{baseUrl}}/query
+headers:
+  Content-Type: {{contentType}}
+body:
+  q: "What are the advantages and disadvantages of using convolutional neural networks for image recognition tasks?"
+  k: 10
+  knn: 6
+  includeText: true
+timeout: 30000
+expect:
+  status: 200
+  body:
+    answer: string
+    citations: array
+
+# ========================================
+# Edge Cases
+# ========================================
+
+test: Very Short Query
+method: POST
+url: {{baseUrl}}/query
+headers:
+  Content-Type: {{contentType}}
+body:
+  q: "AI"
+expect:
+  status: 200
+  body:
+    answer: string
+
+test: Query with Special Characters
+method: POST
+url: {{baseUrl}}/query
+headers:
+  Content-Type: {{contentType}}
+body:
+  q: "What is the difference between AI & ML? (Include examples)"
+expect:
+  status: 200
+  body:
+    answer: string
+
+test: Query with Numbers
+method: POST
+url: {{baseUrl}}/query
+headers:
+  Content-Type: {{contentType}}
+body:
+  q: "What are the top 5 machine learning algorithms and their accuracy rates?"
+expect:
+  status: 200
+  body:
+    answer: string
+
+# ========================================
+# Load Testing (Uncomment for load testing)
+# ========================================
+
+# test: Load Test Query 1
+# method: POST
+# url: {{baseUrl}}/query
+# headers:
+#   Content-Type: {{contentType}}
+# body:
+#   q: "What is machine learning?"
+#   k: 5
+# expect:
+#   status: 200
+
+# test: Load Test Query 2
+# method: POST
+# url: {{baseUrl}}/query
+# headers:
+#   Content-Type: {{contentType}}
+# body:
+#   q: "Explain neural networks"
+#   k: 5
+# expect:
+#   status: 200
+
+# test: Load Test Query 3
+# method: POST
+# url: {{baseUrl}}/query
+# headers:
+#   Content-Type: {{contentType}}
+# body:
+#   q: "What is deep learning?"
+#   k: 5
+# expect:
+#   status: 200

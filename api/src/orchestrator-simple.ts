@@ -23,16 +23,10 @@ import { retrieveDocuments } from './agents/retriever';
  * Simple sequential orchestrator without LangGraph dependency
  */
 export class SimpleRAGOrchestrator {
-    private config: OrchestratorConfig; // Configuration for future use
-
     constructor(_config: OrchestratorConfig = {}) {
-        // Configuration stored but not used in simple orchestrator
+        // Configuration not used in simple orchestrator
         // Future: Could use config for timeout, retries, etc.
-        this.config = {
-            maxRetries: _config.maxRetries ?? 2,
-            timeoutMs: _config.timeoutMs ?? 30000,
-            enableLogging: _config.enableLogging ?? true,
-        };
+        // Currently using default values for simplicity
     }
 
     /**

@@ -16,7 +16,7 @@ export async function embedQuery(text: string): Promise<number[]> {
         }
 
         const response = await openai.embeddings.create({
-            model: "text-embedding-3-large", // 3072 dimensions to match contentVector/chatVector
+            model: openAIConfig.embedDeployment, // Use deployment name from config
             input: text,
         });
 

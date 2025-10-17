@@ -50,9 +50,10 @@ export async function retrieveDocuments(
 
         // Step 1: Generate query embedding
         const queryVector = await embedQuery(question);
+        console.log(`🎯 Generated embedding vector with ${queryVector.length} dimensions for query: "${question}"`);
 
-        // Step 2: Execute vector search
-        const searchResults = await searchClient.search(question, {
+        // Step 2: Execute vector search only (no text search)
+        const searchResults = await searchClient.search('', {
             top: searchLimit,
             vectorSearchOptions: {
                 queries: [{
@@ -79,18 +80,41 @@ export async function retrieveDocuments(
             }
         }
 
+        console.log(`📊 Raw search results (${searchHits.length} docs):`, searchHits.map(hit => ({
+            id: hit.id,
+            filename: hit.filename,
+            category: hit.category,
+            score: hit.score,
+            contentPreview: hit.content.substring(0, 100) + '...'
+        })));
+
+        // Step 2.5: Deduplicate by content (keep highest scoring version of each unique content)
+        const contentToBestHit = new Map<string, SearchHit>();
+        for (const hit of searchHits) {
+            const existingHit = contentToBestHit.get(hit.content);
+            if (!existingHit || hit.score > existingHit.score) {
+                contentToBestHit.set(hit.content, hit);
+            }
+        }
+        const deduplicatedHits = Array.from(contentToBestHit.values());
+
+        console.log(`🔄 Deduplicated from ${searchHits.length} to ${deduplicatedHits.length} unique documents`);
+
         const retrievalTimeMs = Date.now() - startTime;
 
-        // Step 3: Apply reranking if enabled
+        // Step 3: Apply external reranking if enabled (using deduplicated results)
+        // Note: Azure Cognitive Search has built-in reranking, so external reranker is optional
         let finalResults: SearchHit[];
         let reRankingTimeMs: number | undefined;
 
-        if (useReRanker && searchHits.length > 0) {
+        if (useReRanker && deduplicatedHits.length > 0) {
             const reRankStartTime = Date.now();
-            finalResults = await rerankWithAzure(question, searchHits, k);
+            finalResults = await rerankWithAzure(question, deduplicatedHits, k);
             reRankingTimeMs = Date.now() - reRankStartTime;
+            console.log(`🔄 Used external Azure AI ReRanker (${reRankingTimeMs}ms)`);
         } else {
-            finalResults = searchHits.slice(0, k);
+            finalResults = deduplicatedHits.slice(0, k);
+            console.log(`📊 Using Cognitive Search built-in ranking (no external reranker)`);
         }
 
         // Step 4: Filter by minimum score if specified

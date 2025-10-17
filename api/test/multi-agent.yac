@@ -1,0 +1,413 @@
+name: Multi-Agent RAG API Test Suite
+description: Comprehensive test suite for the multi-agent RAG API endpoints
+version: 1.0.0
+
+variables:
+  baseUrl: http://localhost:3000
+  contentType: application/json
+  requestId: uuid
+
+environment:
+  development:
+    baseUrl: http://localhost:3000
+    timeout: 30000
+  production:
+    baseUrl: https://your-api.azurewebsites.net
+    timeout: 60000
+
+# ========================================
+# Health Check Tests
+# ========================================
+
+test: Health Check
+method: GET
+url: {{baseUrl}}/health
+expect:
+  status: 200
+  headers:
+    content-type: application/json
+  body:
+    status: healthy
+    version: string
+    timestamp: string
+
+# ========================================
+# 1. CLASSIFY ENDPOINT TESTS
+# ========================================
+
+test: Classify HR Question
+method: POST
+url: {{baseUrl}}/api/classify
+headers:
+  Content-Type: {{contentType}}
+  X-Request-ID: {{requestId}}
+body:
+  question: "What is our company policy on remote work and flexible hours?"
+expect:
+  status: 200
+  body:
+    category: hr
+    complexity: moderate
+    confidence: number
+    reasoning: string
+    requestId: string
+    timeMs: number
+
+test: Classify Trading Question
+method: POST
+url: {{baseUrl}}/api/classify
+headers:
+  Content-Type: {{contentType}}
+body:
+  question: "What are the margin requirements for options trading?"
+expect:
+  status: 200
+  body:
+    category: trading
+    complexity: simple
+    confidence: number
+
+test: Classify Technical Question
+method: POST
+url: {{baseUrl}}/api/classify
+headers:
+  Content-Type: {{contentType}}
+body:
+  question: "How do I reset my VPN password?"
+expect:
+  status: 200
+  body:
+    category: technical
+    complexity: simple
+
+test: Classify Invalid Question
+method: POST
+url: {{baseUrl}}/api/classify
+headers:
+  Content-Type: {{contentType}}
+body:
+  question: ""
+expect:
+  status: 400
+
+# ========================================
+# 2. RETRIEVE ENDPOINT TESTS
+# ========================================
+
+test: Retrieve Trading Documents
+method: POST
+url: {{baseUrl}}/api/retrieve
+headers:
+  Content-Type: {{contentType}}
+body:
+  question: "What are the latest trading regulations for stock options?"
+  maxResults: 5
+expect:
+  status: 200
+  body:
+    documents: array
+    metrics:
+      retrievalTimeMs: number
+      reRankingTimeMs: number
+      totalDocuments: number
+    requestId: string
+
+test: Retrieve with High Results
+method: POST
+url: {{baseUrl}}/api/retrieve
+headers:
+  Content-Type: {{contentType}}
+body:
+  question: "HR benefits and policies"
+  maxResults: 15
+expect:
+  status: 200
+  body:
+    documents: array
+    metrics:
+      retrievalTimeMs: number
+
+# ========================================
+# 3. SUMMARISE ENDPOINT TESTS
+# ========================================
+
+test: Summarize HR Documents
+method: POST
+url: {{baseUrl}}/api/summarise
+headers:
+  Content-Type: {{contentType}}
+body:
+  question: "Explain our HR benefits package"
+  documents:
+    - id: doc1
+      content: "Our company offers comprehensive health insurance including medical, dental, and vision coverage. Employees can choose from three different plan tiers."
+      filename: benefits-guide.pdf
+      category: hr
+      createdUtc: "2024-01-15"
+      score: 0.95
+    - id: doc2
+      content: "Retirement benefits include a 401(k) plan with 6% company match. Employees are vested after 2 years of employment."
+      filename: retirement-plan.pdf
+      category: hr
+      createdUtc: "2024-01-20"
+      score: 0.92
+    - id: doc3
+      content: "Paid time off policy: 15 days vacation, 10 sick days, and 12 company holidays per year. Additional days awarded after 5 years."
+      filename: pto-policy.pdf
+      category: hr
+      createdUtc: "2024-02-01"
+      score: 0.89
+expect:
+  status: 200
+  body:
+    summarizedContext: string
+    originalDocCount: 3
+    tokensUsed: number
+    timeMs: number
+    requestId: string
+
+# ========================================
+# 4. ANSWER ENDPOINT TESTS
+# ========================================
+
+test: Answer with Documents
+method: POST
+url: {{baseUrl}}/api/answer
+headers:
+  Content-Type: {{contentType}}
+body:
+  question: "What health insurance options do we have?"
+  includeText: true
+  documents:
+    - id: doc1
+      content: "Our company offers comprehensive health insurance including medical, dental, and vision coverage. Employees can choose from three different plan tiers: Bronze, Silver, and Gold. The Bronze plan has the lowest premiums but higher deductibles, while the Gold plan offers the most comprehensive coverage with lower out-of-pocket costs."
+      filename: benefits-guide.pdf
+      category: hr
+      createdUtc: "2024-01-15"
+      score: 0.95
+expect:
+  status: 200
+  body:
+    answer: string
+    citations: array
+    timeMs: number
+    requestId: string
+
+test: Answer with Summary
+method: POST
+url: {{baseUrl}}/api/answer
+headers:
+  Content-Type: {{contentType}}
+body:
+  question: "What are our company benefits?"
+  summarizedContext: "The company offers comprehensive benefits including health insurance (medical, dental, vision) with three plan tiers, 401(k) retirement plan with 6% match, 15 days vacation, 10 sick days, and 12 company holidays per year."
+expect:
+  status: 200
+  body:
+    answer: string
+    citations: array
+
+# ========================================
+# 5. ASK ENDPOINT TESTS (FULL ORCHESTRATION)
+# ========================================
+
+test: Ask Simple Question
+method: POST
+url: {{baseUrl}}/api/ask
+headers:
+  Content-Type: {{contentType}}
+body:
+  question: "What is our policy on remote work and how many vacation days do employees get?"
+  maxResults: 6
+  includeText: false
+expect:
+  status: 200
+  body:
+    answer: string
+    citations: array
+    requestId: string
+    metadata:
+      category: string
+      complexity: string
+      documentsRetrieved: number
+      usedSummarization: boolean
+      metrics:
+        classificationTimeMs: number
+        retrievalTimeMs: number
+        reRankingTimeMs: number
+        answerTimeMs: number
+        totalTimeMs: number
+
+test: Ask Complex Question (Triggers Summarization)
+method: POST
+url: {{baseUrl}}/api/ask
+headers:
+  Content-Type: {{contentType}}
+body:
+  question: "Can you explain our entire HR benefits package including health insurance, retirement plans, paid time off, and any additional perks or wellness programs?"
+  maxResults: 15
+  includeText: true
+expect:
+  status: 200
+  body:
+    answer: string
+    citations: array
+    metadata:
+      usedSummarization: true
+      documentsRetrieved: number
+
+test: Ask HR Question
+method: POST
+url: {{baseUrl}}/api/ask
+headers:
+  Content-Type: {{contentType}}
+body:
+  question: "How do I submit an expense report?"
+  maxResults: 5
+expect:
+  status: 200
+  body:
+    answer: string
+    metadata:
+      category: hr
+
+test: Ask Trading Question
+method: POST
+url: {{baseUrl}}/api/ask
+headers:
+  Content-Type: {{contentType}}
+body:
+  question: "What are the margin requirements for options trading?"
+  maxResults: 5
+expect:
+  status: 200
+  body:
+    answer: string
+    metadata:
+      category: trading
+
+test: Ask Technical Question
+method: POST
+url: {{baseUrl}}/api/ask
+headers:
+  Content-Type: {{contentType}}
+body:
+  question: "How do I reset my VPN password?"
+  maxResults: 5
+expect:
+  status: 200
+  body:
+    answer: string
+    metadata:
+      category: technical
+
+# ========================================
+# 6. LEGACY ENDPOINT TESTS
+# ========================================
+
+test: Legacy Query Endpoint
+method: POST
+url: {{baseUrl}}/query
+headers:
+  Content-Type: {{contentType}}
+body:
+  question: "What is our company vacation policy?"
+  maxResults: 6
+  includeText: false
+expect:
+  status: 200
+  body:
+    answer: string
+    citations: array
+    requestId: string
+    metrics:
+      retrievalTimeMs: number
+      reRankingTimeMs: number
+      promptTimeMs: number
+      totalTimeMs: number
+
+# ========================================
+# ERROR HANDLING TESTS
+# ========================================
+
+test: Invalid Request Body
+method: POST
+url: {{baseUrl}}/api/ask
+headers:
+  Content-Type: {{contentType}}
+body:
+  invalidField: "test"
+expect:
+  status: 400
+
+test: Missing Question
+method: POST
+url: {{baseUrl}}/api/ask
+headers:
+  Content-Type: {{contentType}}
+body:
+  maxResults: 5
+expect:
+  status: 400
+
+test: Question Too Long
+method: POST
+url: {{baseUrl}}/api/ask
+headers:
+  Content-Type: {{contentType}}
+body:
+  question: "This is a very long question that exceeds the maximum allowed length of 1000 characters. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum. Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo. Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt. Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet, consectetur, adipisci velit, sed quia non numquam eius modi tempora incididunt ut labore et dolore magnam aliquam quaerat voluptatem. Ut enim ad minima veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."
+expect:
+  status: 400
+
+# ========================================
+# PERFORMANCE TESTS
+# ========================================
+
+test: High Volume Retrieval
+method: POST
+url: {{baseUrl}}/api/ask
+headers:
+  Content-Type: {{contentType}}
+body:
+  question: "What are all our company policies and procedures?"
+  maxResults: 20
+  includeText: true
+timeout: 30000
+expect:
+  status: 200
+  body:
+    metadata:
+      usedSummarization: true
+
+# ========================================
+# ORCHESTRATOR COMPARISON TESTS
+# ========================================
+
+test: Simple Orchestrator Performance
+method: POST
+url: {{baseUrl}}/api/ask
+headers:
+  Content-Type: {{contentType}}
+  X-Orchestrator-Type: simple
+body:
+  question: "What is our remote work policy?"
+  maxResults: 6
+expect:
+  status: 200
+  body:
+    answer: string
+
+test: LangGraph Orchestrator Performance
+method: POST
+url: {{baseUrl}}/api/ask
+headers:
+  Content-Type: {{contentType}}
+  X-Orchestrator-Type: langgraph
+body:
+  question: "What is our remote work policy?"
+  maxResults: 6
+expect:
+  status: 200
+  body:
+    answer: string
